@@ -1,25 +1,22 @@
 import apiClient from './client';
 
-export async function login(email, password) {
-    const fullUrl = apiClient.defaults.baseURL + '/auth/login';
-    console.log('🔐 Attempting login to:', fullUrl);
-    console.log('📧 Email:', email);
-    console.log('🔑 Password length:', password.length);
-    
+export async function login(email, password, role) {
     try {
-        const { data } = await apiClient.post('/auth/login', { email, password });
-        console.log('✅ Login successful!');
+        const { data } = await apiClient.post('/auth/login', { email, password, role });
         return data; // { token, expiration, user }
     } catch (error) {
-        console.error('❌ Login failed:', error);
-        console.error('❌ Error URL:', error.config?.url);
-        console.error('❌ Error baseURL:', error.config?.baseURL);
+        // Error is already logged by client.js interceptor
         throw error;
     }
 }
 
 export async function register(payload) {
     const { data } = await apiClient.post('/auth/register', payload);
+    return data;
+}
+
+export async function forgotPassword(email) {
+    const { data } = await apiClient.post('/auth/forgot-password', { email });
     return data;
 }
 

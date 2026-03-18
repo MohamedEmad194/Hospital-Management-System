@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -21,6 +22,7 @@ namespace Hospital_Management_System.Controllers
         /// Get all departments
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetDepartments()
         {
             try
@@ -39,6 +41,7 @@ namespace Hospital_Management_System.Controllers
         /// Get department by ID
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<DepartmentDto>> GetDepartment(int id)
         {
             try
@@ -60,6 +63,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new department
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DepartmentDto>> CreateDepartment(CreateDepartmentDto createDepartmentDto)
         {
             try
@@ -81,6 +85,7 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing department
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DepartmentDto>> UpdateDepartment(int id, UpdateDepartmentDto updateDepartmentDto)
         {
             try
@@ -105,6 +110,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a department
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteDepartment(int id)
         {
             try
@@ -126,6 +132,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if department exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> DepartmentExists(int id)
         {
             try

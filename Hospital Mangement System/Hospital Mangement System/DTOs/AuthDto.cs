@@ -11,6 +11,10 @@ namespace Hospital_Management_System.DTOs
         [Required]
         [StringLength(100, MinimumLength = 6)]
         public string Password { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(50)]
+        public string Role { get; set; } = string.Empty; // Admin, Doctor, Patient, Nurse, Staff
     }
 
     public class RegisterDto
@@ -73,6 +77,9 @@ namespace Hospital_Management_System.DTOs
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<string> Roles { get; set; } = new();
+        public int? DoctorId { get; set; }
+        public int? PatientId { get; set; }
+        public int? StaffId { get; set; }
     }
 
     public class ChangePasswordDto

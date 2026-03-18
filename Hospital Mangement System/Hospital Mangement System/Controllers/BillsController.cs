@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -18,27 +20,66 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get all bills
+        /// Get all bills (filtered by role)
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<BillDto>>> GetBills()
         {
             try
             {
-                var bills = await _billService.GetAllBillsAsync();
+                // Check if user is authenticated - [Authorize] should handle this, but double-check
+                if (User?.Identity == null || !User.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("Unauthenticated request to GetBills - User.Identity is null or not authenticated");
+                    return StatusCode(401, new { message = "Authentication required", details = "Please login to access this resource" });
+                }
+
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                _logger.LogInformation("GetBills called - Role: {Role}, PatientId: {PatientId}", 
+                    userRole, patientIdClaim);
+
+                IEnumerable<BillDto> bills;
+
+                if (userRole == "Admin" || userRole == "Doctor" || userRole == "Staff")
+                {
+                    // Admin, Doctor, Staff see all bills
+                    bills = await _billService.GetAllBillsAsync();
+                }
+                else if (userRole == "Patient" && !string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int patientId))
+                {
+                    // Patient sees only their bills
+                    bills = await _billService.GetBillsByPatientAsync(patientId);
+                }
+                else
+                {
+                    _logger.LogWarning("Insufficient permissions - Role: {Role}, PatientId: {PatientId}", userRole, patientIdClaim);
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view bills" });
+                }
+
                 return Ok(bills);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving bills");
-                return StatusCode(500, "An error occurred while retrieving bills");
+                _logger.LogError(ex, "Error retrieving bills: {Message}", ex.Message);
+                _logger.LogError(ex, "Stack trace: {StackTrace}", ex.StackTrace);
+                return StatusCode(500, new 
+                { 
+                    message = "An error occurred while retrieving bills",
+                    error = ex.Message,
+                    innerException = ex.InnerException?.Message,
+                    details = ex.StackTrace
+                });
             }
         }
 
         /// <summary>
-        /// Get bill by ID
+        /// Get bill by ID (filtered by role)
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<BillDto>> GetBill(int id)
         {
             try
@@ -46,6 +87,20 @@ namespace Hospital_Management_System.Controllers
                 var bill = await _billService.GetBillByIdAsync(id);
                 if (bill == null)
                     return NotFound($"Bill with ID {id} not found");
+
+                // Check permissions
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                if (userRole == "Patient" && (!string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int patientId)))
+                {
+                    if (bill.PatientId != patientId)
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You can only view your own bills" });
+                }
+                else if (userRole != "Admin" && userRole != "Doctor" && userRole != "Staff")
+                {
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view this bill" });
+                }
 
                 return Ok(bill);
             }
@@ -60,6 +115,7 @@ namespace Hospital_Management_System.Controllers
         /// Get bills by patient
         /// </summary>
         [HttpGet("patient/{patientId}")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<BillDto>>> GetBillsByPatient(int patientId)
         {
             try
@@ -78,6 +134,7 @@ namespace Hospital_Management_System.Controllers
         /// Get overdue bills
         /// </summary>
         [HttpGet("overdue")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<IEnumerable<BillDto>>> GetOverdueBills()
         {
             try
@@ -96,6 +153,7 @@ namespace Hospital_Management_System.Controllers
         /// Get total outstanding amount
         /// </summary>
         [HttpGet("outstanding-amount")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<decimal>> GetTotalOutstandingAmount()
         {
             try
@@ -114,6 +172,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new bill
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<BillDto>> CreateBill(CreateBillDto createBillDto)
         {
             try
@@ -139,6 +198,7 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing bill
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<BillDto>> UpdateBill(int id, UpdateBillDto updateBillDto)
         {
             try
@@ -163,6 +223,7 @@ namespace Hospital_Management_System.Controllers
         /// Process payment for a bill
         /// </summary>
         [HttpPost("{id}/payment")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult> ProcessPayment(int id, PaymentDto paymentDto)
         {
             try
@@ -187,6 +248,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a bill
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteBill(int id)
         {
             try
@@ -208,6 +270,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if bill exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> BillExists(int id)
         {
             try

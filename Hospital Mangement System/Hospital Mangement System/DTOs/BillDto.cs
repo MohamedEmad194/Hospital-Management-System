@@ -23,6 +23,7 @@ namespace Hospital_Management_System.DTOs
         public decimal? InsuranceCoverage { get; set; }
         public int PatientId { get; set; }
         public string? PatientName { get; set; }
+        public string? PatientEmail { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public List<BillItemDto>? BillItems { get; set; }

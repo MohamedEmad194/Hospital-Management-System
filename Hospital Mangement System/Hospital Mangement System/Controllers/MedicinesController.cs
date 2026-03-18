@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -21,6 +22,7 @@ namespace Hospital_Management_System.Controllers
         /// Get all medicines
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<MedicineDto>>> GetMedicines()
         {
             try
@@ -39,6 +41,7 @@ namespace Hospital_Management_System.Controllers
         /// Get medicine by ID
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<MedicineDto>> GetMedicine(int id)
         {
             try
@@ -60,6 +63,7 @@ namespace Hospital_Management_System.Controllers
         /// Search medicines
         /// </summary>
         [HttpGet("search")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<MedicineDto>>> SearchMedicines([FromQuery] string searchTerm)
         {
             try
@@ -81,6 +85,7 @@ namespace Hospital_Management_System.Controllers
         /// Get low stock medicines
         /// </summary>
         [HttpGet("low-stock")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<IEnumerable<MedicineDto>>> GetLowStockMedicines()
         {
             try
@@ -99,6 +104,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new medicine
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<MedicineDto>> CreateMedicine(CreateMedicineDto createMedicineDto)
         {
             try
@@ -120,6 +126,7 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing medicine
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<MedicineDto>> UpdateMedicine(int id, UpdateMedicineDto updateMedicineDto)
         {
             try
@@ -144,6 +151,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a medicine
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteMedicine(int id)
         {
             try
@@ -165,6 +173,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if medicine exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> MedicineExists(int id)
         {
             try

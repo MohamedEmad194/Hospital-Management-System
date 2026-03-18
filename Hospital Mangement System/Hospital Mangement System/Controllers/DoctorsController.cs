@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -21,6 +23,7 @@ namespace Hospital_Management_System.Controllers
         /// Get all doctors
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<DoctorDto>>> GetDoctors()
         {
             try
@@ -39,6 +42,7 @@ namespace Hospital_Management_System.Controllers
         /// Get doctor by ID
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<DoctorDto>> GetDoctor(int id)
         {
             try
@@ -60,6 +64,7 @@ namespace Hospital_Management_System.Controllers
         /// Get doctor by National ID
         /// </summary>
         [HttpGet("national-id/{nationalId}")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<DoctorDto>> GetDoctorByNationalId(string nationalId)
         {
             try
@@ -81,6 +86,7 @@ namespace Hospital_Management_System.Controllers
         /// Get doctor by License Number
         /// </summary>
         [HttpGet("license/{licenseNumber}")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<DoctorDto>> GetDoctorByLicenseNumber(string licenseNumber)
         {
             try
@@ -102,6 +108,7 @@ namespace Hospital_Management_System.Controllers
         /// Get doctors by department
         /// </summary>
         [HttpGet("department/{departmentId}")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<DoctorDto>>> GetDoctorsByDepartment(int departmentId)
         {
             try
@@ -120,6 +127,7 @@ namespace Hospital_Management_System.Controllers
         /// Get available doctors
         /// </summary>
         [HttpGet("available")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<DoctorDto>>> GetAvailableDoctors()
         {
             try
@@ -138,6 +146,7 @@ namespace Hospital_Management_System.Controllers
         /// Search doctors
         /// </summary>
         [HttpGet("search")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<DoctorDto>>> SearchDoctors([FromQuery] string searchTerm)
         {
             try
@@ -159,6 +168,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new doctor
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DoctorDto>> CreateDoctor(CreateDoctorDto createDoctorDto)
         {
             try
@@ -184,12 +194,30 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing doctor
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult<DoctorDto>> UpdateDoctor(int id, UpdateDoctorDto updateDoctorDto)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Check permissions - Admin can update any doctor, Doctor can only update themselves
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var doctorIdClaim = User.FindFirstValue("DoctorId");
+
+                if (userRole != "Admin")
+                {
+                    if (userRole == "Doctor" && (!string.IsNullOrEmpty(doctorIdClaim) && int.TryParse(doctorIdClaim, out int loggedInDoctorId)))
+                    {
+                        if (id != loggedInDoctorId)
+                            return StatusCode(403, new { message = "Insufficient permissions", details = "You can only update your own profile" });
+                    }
+                    else
+                    {
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have permission to update doctors" });
+                    }
+                }
 
                 var doctor = await _doctorService.UpdateDoctorAsync(id, updateDoctorDto);
                 if (doctor == null)
@@ -212,6 +240,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a doctor
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteDoctor(int id)
         {
             try
@@ -233,6 +262,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if doctor exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> DoctorExists(int id)
         {
             try

@@ -29,9 +29,18 @@ namespace Hospital_Management_System.Mappings
 
             // Appointment mappings
             CreateMap<Appointment, AppointmentDto>()
-                .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src => src.Patient != null ? $"{src.Patient.FirstName} {src.Patient.LastName}" : null))
-                .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => src.Doctor != null ? $"{src.Doctor.FirstName} {src.Doctor.LastName}" : null))
-                .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => src.Room != null ? src.Room.RoomNumber : null));
+                .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src => 
+                    src.Patient != null && !string.IsNullOrEmpty(src.Patient.FirstName) && !string.IsNullOrEmpty(src.Patient.LastName)
+                        ? $"{src.Patient.FirstName} {src.Patient.LastName}" 
+                        : null))
+                .ForMember(dest => dest.DoctorName, opt => opt.MapFrom(src => 
+                    src.Doctor != null && !string.IsNullOrEmpty(src.Doctor.FirstName) && !string.IsNullOrEmpty(src.Doctor.LastName)
+                        ? $"{src.Doctor.FirstName} {src.Doctor.LastName}" 
+                        : null))
+                .ForMember(dest => dest.RoomNumber, opt => opt.MapFrom(src => 
+                    src.Room != null && !string.IsNullOrEmpty(src.Room.RoomNumber)
+                        ? src.Room.RoomNumber 
+                        : null));
             CreateMap<CreateAppointmentDto, Appointment>();
             CreateMap<UpdateAppointmentDto, Appointment>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
@@ -52,7 +61,12 @@ namespace Hospital_Management_System.Mappings
 
             // Bill mappings
             CreateMap<Bill, BillDto>()
-                .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src => src.Patient != null ? $"{src.Patient.FirstName} {src.Patient.LastName}" : null));
+                .ForMember(dest => dest.PatientName, opt => opt.MapFrom(src => 
+                    src.Patient != null && !string.IsNullOrEmpty(src.Patient.FirstName) && !string.IsNullOrEmpty(src.Patient.LastName)
+                        ? $"{src.Patient.FirstName} {src.Patient.LastName}" 
+                        : null))
+                .ForMember(dest => dest.PatientEmail, opt => opt.MapFrom(src => 
+                    src.Patient != null ? src.Patient.Email : null));
             CreateMap<CreateBillDto, Bill>();
             CreateMap<UpdateBillDto, Bill>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
@@ -88,6 +102,12 @@ namespace Hospital_Management_System.Mappings
 
             // User mappings
             CreateMap<User, UserDto>();
+
+            // NursingUnit mappings
+            CreateMap<NursingUnit, NursingUnitDto>();
+            CreateMap<CreateNursingUnitDto, NursingUnit>();
+            CreateMap<UpdateNursingUnitDto, NursingUnit>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
     }
 }

@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { createMedicine } from '../api/medicines';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function AddMedicine() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -59,7 +61,7 @@ export default function AddMedicine() {
             await createMedicine(payload);
             navigate('/medicines');
         } catch (err) {
-            setError(err?.response?.data || 'Failed to create medicine');
+            setError(err?.response?.data || t('addMedicine.failed'));
         } finally {
             setLoading(false);
         }
@@ -67,65 +69,65 @@ export default function AddMedicine() {
 
     return (
         <div style={{ padding: 24 }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Add Medicine</h2>
+            <h2 style={{ marginTop: 0, marginBottom: 16 }}>{t('addMedicine.title')}</h2>
             <form onSubmit={handleSubmit} className="card" style={{ padding: 20, display: 'grid', gap: 12, maxWidth: 760 }}>
                 {error ? <div style={{ color: '#b00020' }}>{String(error)}</div> : null}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                     <div>
-                        <label>Name</label>
+                        <label>{t('addMedicine.fields.name')}</label>
                         <input value={form.name} onChange={(e) => update('name', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Generic Name</label>
+                        <label>{t('addMedicine.fields.genericName')}</label>
                         <input value={form.genericName} onChange={(e) => update('genericName', e.target.value)} />
                     </div>
                     <div>
-                        <label>Dosage Form</label>
+                        <label>{t('addMedicine.fields.dosageForm')}</label>
                         <input value={form.dosageForm} onChange={(e) => update('dosageForm', e.target.value)} />
                     </div>
                     <div>
-                        <label>Strength</label>
+                        <label>{t('addMedicine.fields.strength')}</label>
                         <input value={form.strength} onChange={(e) => update('strength', e.target.value)} />
                     </div>
                     <div>
-                        <label>Manufacturer</label>
+                        <label>{t('addMedicine.fields.manufacturer')}</label>
                         <input value={form.manufacturer} onChange={(e) => update('manufacturer', e.target.value)} />
                     </div>
                     <div>
-                        <label>Price</label>
+                        <label>{t('addMedicine.fields.price')}</label>
                         <input type="number" min="0" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Stock Quantity</label>
+                        <label>{t('addMedicine.fields.stockQuantity')}</label>
                         <input type="number" min="0" value={form.stockQuantity} onChange={(e) => update('stockQuantity', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Minimum Stock</label>
+                        <label>{t('addMedicine.fields.minimumStock')}</label>
                         <input type="number" min="0" value={form.minimumStockLevel} onChange={(e) => update('minimumStockLevel', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Unit</label>
+                        <label>{t('addMedicine.fields.unit')}</label>
                         <input value={form.unit} onChange={(e) => update('unit', e.target.value)} />
                     </div>
                     <div>
-                        <label>Expiry Date</label>
+                        <label>{t('addMedicine.fields.expiryDate')}</label>
                         <input type="date" value={form.expiryDate} onChange={(e) => update('expiryDate', e.target.value)} />
                     </div>
                     <div>
-                        <label>Batch Number</label>
+                        <label>{t('addMedicine.fields.batchNumber')}</label>
                         <input value={form.batchNumber} onChange={(e) => update('batchNumber', e.target.value)} />
                     </div>
                     <div>
-                        <label>Requires Prescription</label>
+                        <label>{t('addMedicine.fields.requiresPrescription')}</label>
                         <select value={form.requiresPrescription ? 'yes' : 'no'} onChange={(e) => update('requiresPrescription', e.target.value === 'yes')}>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
+                            <option value="yes">{t('addMedicine.fields.yes')}</option>
+                            <option value="no">{t('addMedicine.fields.no')}</option>
                         </select>
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="submit" disabled={loading || !canSubmit} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-primary-600)', background: 'var(--hms-primary)', color: '#fff', fontWeight: 700 }}>{loading ? 'Saving…' : 'Save Medicine'}</button>
-                    <button type="button" onClick={() => navigate(-1)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-border)', background: 'var(--hms-surface)' }}>Cancel</button>
+                    <button type="submit" disabled={loading || !canSubmit} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-primary-600)', background: 'var(--hms-primary)', color: '#fff', fontWeight: 700 }}>{loading ? t('addMedicine.actions.saving') : t('addMedicine.actions.save')}</button>
+                    <button type="button" onClick={() => navigate(-1)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-border)', background: 'var(--hms-surface)' }}>{t('addMedicine.actions.cancel')}</button>
                 </div>
             </form>
         </div>

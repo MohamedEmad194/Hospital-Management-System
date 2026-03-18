@@ -13,7 +13,7 @@ namespace Hospital_Mangement_System.Migrations
 {
     [DbContext(typeof(HospitalDbContext))]
     [Migration("20250915105647_initail create")]
-    partial class initailcreate
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

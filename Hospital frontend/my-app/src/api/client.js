@@ -2,9 +2,41 @@ import axios from 'axios';
 
 // For development, use HTTP to avoid SSL certificate issues
 // In production, this should be HTTPS
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5230';
+const RAW_API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').trim();
 
-// Force the correct URL to prevent any caching issues
+function normalizeBaseUrl(value) {
+    // If empty, fallback to localhost default with HTTP to avoid SSL issues
+    if (!value) return 'http://localhost:5230';
+
+    let url = value.trim();
+
+    // If someone passed only a port like ":5230" or "5230", treat as localhost
+    if (/^:?\d{2,5}$/.test(url)) {
+        const port = url.replace(/^:/, '');
+        // Use HTTP for all ports in development to avoid SSL issues
+        return `http://localhost:${port}`;
+    }
+
+    // Auto-prepend protocol if missing - prefer HTTP for development to avoid SSL issues
+    if (!/^https?:\/\//i.test(url)) {
+        // Use HTTP for all ports in development
+        url = `http://${url}`;
+    }
+
+    try {
+        const u = new URL(url);
+        // Remove any trailing slash for consistency
+        const host = u.origin.replace(/\/$/, '');
+        return host;
+    } catch {
+        // As a last resort, use HTTP localhost
+        return 'http://localhost:5230';
+    }
+}
+
+const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
+
+// Debug environment + resolved base URL
 console.log('🔧 API_BASE_URL set to:', API_BASE_URL);
 console.log('🔧 Environment variables:', {
     REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
@@ -23,7 +55,7 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json'
     },
     timeout: 10000, // 10 seconds timeout
-    withCredentials: false // Disable credentials for CORS
+    withCredentials: true // Enable credentials for CORS
 });
 
 // Debug: Log the API base URL
@@ -55,6 +87,11 @@ apiClient.interceptors.response.use(
             baseURL: error?.config?.baseURL,
             fullURL: error?.config?.baseURL + error?.config?.url
         });
+        
+        // Also log data as JSON for better readability
+        if (error?.response?.data) {
+            console.error('❌ Error Data (JSON):', JSON.stringify(error.response.data, null, 2));
+        }
 
         // Check if it's a connection error
         if (error?.message?.includes('ERR_CONNECTION_REFUSED') || 
@@ -64,11 +101,38 @@ apiClient.interceptors.response.use(
         }
 
         if (error?.response?.status === 401) {
-            // Token invalid/expired: clear and redirect to login
-            localStorage.removeItem('token');
+            // 401 = Unauthorized (not authenticated or token expired)
+            console.warn('🔐 Authentication error (401):', {
+                status: error?.response?.status,
+                message: error?.response?.data?.message || error?.message,
+                path: window.location.pathname
+            });
+            
+            // Don't redirect if already on login page (avoid redirect loop)
             if (window.location.pathname !== '/login') {
-                window.location.replace('/login');
+                // Clear invalid/expired token
+                localStorage.removeItem('token');
+                // Show user-friendly message
+                console.warn('⚠️ Session expired or invalid. Please login again.');
+                // Redirect to login after a short delay to allow user to see the message
+                setTimeout(() => {
+                    if (window.location.pathname !== '/login') {
+                        window.location.replace('/login');
+                    }
+                }, 1000);
             }
+            // If on login page, let the error be handled by the login form
+        } else if (error?.response?.status === 403) {
+            // 403 = Forbidden (authenticated but insufficient permissions)
+            // Don't clear token or redirect - user is logged in but doesn't have permission
+            console.warn('🚫 Authorization error (403):', {
+                status: error?.response?.status,
+                message: error?.response?.data?.message || error?.message,
+                details: error?.response?.data?.details,
+                path: window.location.pathname
+            });
+            // Let the component handle the 403 error (show error message to user)
+            // Don't redirect or clear token
         }
         return Promise.reject(error);
     }

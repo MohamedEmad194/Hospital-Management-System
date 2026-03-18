@@ -371,3 +371,5 @@ FodyWeavers.xsd
 logs/
 *.log
 appsettings.Production.json
+appsettings.json
+appsettings.Development.json

@@ -1,0 +1,1015 @@
+{
+  "info": {
+    "_postman_id": "d2c1d4c2-3e58-4288-8d77-5ba208a955e2",
+    "name": "HMS Flutter API - Complete Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection شاملة تحتوي على جميع نقاط النهاية لتكامل تطبيق Flutter مع نظام إدارة المستشفى.\n\n**استخدام:**\n1. قم بتشغيل Login أولاً (سيتم حفظ Token تلقائياً)\n2. جميع الطلبات الأخرى ستستخدم Token المحفوظ\n3. استبدل {id} بالقيم الفعلية عند الاختبار\n\n**ملاحظة:** راجع FLUTTER_API_GUIDE.md للمزيد من التفاصيل والأمثلة"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "        console.log(\"Token saved: \" + jsonData.token.substring(0, 20) + \"...\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"Password123!\",\n  \"confirmPassword\": \"Password123!\",\n  \"nationalId\": \"1234567890\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"gender\": \"Male\",\n  \"address\": \"123 Main St\",\n  \"phoneNumber\": \"1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "        console.log(\"Token saved: \" + jsonData.token.substring(0, 20) + \"...\");",
+                  "    }",
+                  "}",
+                  "",
+                  "pm.test(\"Login successful\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@hospital.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword123!\",\n  \"confirmNewPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Get Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients"]
+            }
+          }
+        },
+        {
+          "name": "Get Patient by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"nationalId\": \"9876543210\",\n  \"email\": \"jane.smith@example.com\",\n  \"phoneNumber\": \"0987654321\",\n  \"dateOfBirth\": \"1985-05-15\",\n  \"gender\": \"Female\",\n  \"address\": \"456 Oak Ave\",\n  \"emergencyContactName\": \"John Smith\",\n  \"emergencyContactPhone\": \"1111111111\",\n  \"insuranceProvider\": \"Health Insurance Co\",\n  \"insuranceNumber\": \"INS123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients"]
+            }
+          }
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane Updated\",\n  \"phoneNumber\": \"0987654321\",\n  \"address\": \"789 Pine St\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Patient",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/patients/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "patients", "{{patientId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doctors",
+      "item": [
+        {
+          "name": "Get Doctors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "doctors"]
+            }
+          }
+        },
+        {
+          "name": "Get Doctor by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "doctors", "{{doctorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Doctor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Dr. Ahmed\",\n  \"lastName\": \"Hassan\",\n  \"nationalId\": \"1111111111\",\n  \"email\": \"ahmed.hassan@hospital.com\",\n  \"phoneNumber\": \"2222222222\",\n  \"dateOfBirth\": \"1980-03-20\",\n  \"gender\": \"Male\",\n  \"address\": \"Hospital Address\",\n  \"licenseNumber\": \"LIC123456\",\n  \"specialization\": \"Cardiology\",\n  \"yearsOfExperience\": 15,\n  \"consultationFee\": 200.00,\n  \"workingHoursStart\": \"09:00:00\",\n  \"workingHoursEnd\": \"17:00:00\",\n  \"departmentId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/doctors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "doctors"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Get Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments"]
+            }
+          }
+        },
+        {
+          "name": "Get Appointment by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Appointments by Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "patient", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Appointments by Doctor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/doctor/{{doctorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "doctor", "{{doctorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Available Time Slots",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/available-slots/{{doctorId}}/2024-01-15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "available-slots", "{{doctorId}}", "2024-01-15"]
+            }
+          }
+        },
+        {
+          "name": "Create Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentDate\": \"2024-01-15\",\n  \"appointmentTime\": \"10:00:00\",\n  \"reason\": \"Regular checkup\",\n  \"notes\": \"Patient has been feeling tired\",\n  \"isFollowUp\": false,\n  \"patientId\": 1,\n  \"doctorId\": 1,\n  \"roomId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments"]
+            }
+          }
+        },
+        {
+          "name": "Update Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appointmentDate\": \"2024-01-16\",\n  \"appointmentTime\": \"11:00:00\",\n  \"reason\": \"Follow-up appointment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Complete Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diagnosis\": \"General fatigue, recommend rest\",\n  \"treatment\": \"Get adequate sleep, regular exercise\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "appointments", "{{appointmentId}}", "complete"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prescriptions",
+      "item": [
+        {
+          "name": "Get Prescriptions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Prescription by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions", "{{prescriptionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Prescriptions by Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions/patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions", "patient", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Prescriptions by Doctor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions/doctor/{{doctorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions", "doctor", "{{doctorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Prescription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prescriptionDate\": \"2024-01-15\",\n  \"validUntil\": \"2024-01-22\",\n  \"instructions\": \"Take with food\",\n  \"notes\": \"Complete the full course\",\n  \"patientId\": 1,\n  \"doctorId\": 1,\n  \"prescriptionItems\": [\n    {\n      \"medicineName\": \"Paracetamol\",\n      \"dosage\": \"500mg\",\n      \"frequency\": \"Twice daily\",\n      \"duration\": \"7 days\",\n      \"instructions\": \"Take with food\",\n      \"quantity\": 14,\n      \"unitPrice\": 5.00,\n      \"medicineId\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions"]
+            }
+          }
+        },
+        {
+          "name": "Dispense Prescription",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/dispense",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "prescriptions", "{{prescriptionId}}", "dispense"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medical Records",
+      "item": [
+        {
+          "name": "Get Medical Records by Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicalrecords/patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicalrecords", "patient", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Medical Record",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recordDate\": \"2024-01-15\",\n  \"recordType\": \"Consultation\",\n  \"symptoms\": \"Fatigue, headache\",\n  \"diagnosis\": \"Stress-related symptoms\",\n  \"treatment\": \"Rest and relaxation\",\n  \"prescription\": \"Paracetamol 500mg\",\n  \"notes\": \"Patient advised to reduce stress\",\n  \"bloodPressure\": \"120/80\",\n  \"temperature\": \"98.6°F\",\n  \"heartRate\": \"72\",\n  \"weight\": \"70kg\",\n  \"height\": \"170cm\",\n  \"patientId\": 1,\n  \"doctorId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/medicalrecords",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicalrecords"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bills",
+      "item": [
+        {
+          "name": "Get Bills",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            }
+          }
+        },
+        {
+          "name": "Get Bill by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Bills by Patient",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "patient", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Bill",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billDate\": \"2024-01-15\",\n  \"dueDate\": \"2024-01-22\",\n  \"notes\": \"Consultation and medication\",\n  \"insuranceProvider\": \"Health Insurance Co\",\n  \"insuranceNumber\": \"INS123456\",\n  \"insuranceCoverage\": 80.00,\n  \"patientId\": 1,\n  \"billItems\": [\n    {\n      \"description\": \"Consultation Fee\",\n      \"category\": \"Consultation\",\n      \"quantity\": 1,\n      \"unitPrice\": 200.00,\n      \"notes\": \"Cardiology consultation\"\n    },\n    {\n      \"description\": \"Paracetamol 500mg\",\n      \"category\": \"Medicine\",\n      \"quantity\": 14,\n      \"unitPrice\": 5.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills"]
+            }
+          }
+        },
+        {
+          "name": "Process Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 150.00,\n  \"paymentMethod\": \"Credit Card\",\n  \"notes\": \"Payment processed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bills/{{billId}}/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bills", "{{billId}}", "payment"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Medicines",
+      "item": [
+        {
+          "name": "Get Medicines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicines",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicines"]
+            }
+          }
+        },
+        {
+          "name": "Get Medicine by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicines/{{medicineId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicines", "{{medicineId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Medicine",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Paracetamol\",\n  \"genericName\": \"Acetaminophen\",\n  \"manufacturer\": \"Pharma Co\",\n  \"dosageForm\": \"Tablet\",\n  \"strength\": \"500mg\",\n  \"stockQuantity\": 1000,\n  \"unitPrice\": 5.00,\n  \"expiryDate\": \"2025-12-31\",\n  \"category\": \"Analgesic\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/medicines",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicines"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "departments"]
+            }
+          }
+        },
+        {
+          "name": "Get Department by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/departments/{{departmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "departments", "{{departmentId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Get Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Recent Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/recent-appointments?count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "recent-appointments"],
+              "query": [
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/revenue",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard", "revenue"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chatbot",
+      "item": [
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What are the visiting hours?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/chatbot/message",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "chatbot", "message"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5230"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "patientId",
+      "value": "1"
+    },
+    {
+      "key": "doctorId",
+      "value": "1"
+    },
+    {
+      "key": "appointmentId",
+      "value": "1"
+    },
+    {
+      "key": "prescriptionId",
+      "value": "1"
+    },
+    {
+      "key": "billId",
+      "value": "1"
+    },
+    {
+      "key": "medicineId",
+      "value": "1"
+    },
+    {
+      "key": "departmentId",
+      "value": "1"
+    },
+    {
+      "key": "roomId",
+      "value": "1"
+    }
+  ]
+}

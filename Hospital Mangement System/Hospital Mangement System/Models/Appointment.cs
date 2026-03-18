@@ -23,7 +23,7 @@ namespace Hospital_Management_System.Models
         [StringLength(1000)]
         public string? Diagnosis { get; set; }
 
-        [StringLength(1000)]
+        [StringLength(500)]
         public string? Treatment { get; set; }
 
         public decimal? ConsultationFee { get; set; }

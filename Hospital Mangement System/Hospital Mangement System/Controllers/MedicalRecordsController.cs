@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -18,14 +20,40 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get all medical records
+        /// Get all medical records (filtered by role)
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<MedicalRecordDto>>> GetMedicalRecords()
         {
             try
             {
-                var records = await _medicalRecordService.GetAllMedicalRecordsAsync();
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var doctorIdClaim = User.FindFirstValue("DoctorId");
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                IEnumerable<MedicalRecordDto> records;
+
+                if (userRole == "Admin" || userRole == "Staff")
+                {
+                    // Admin and Staff see all records
+                    records = await _medicalRecordService.GetAllMedicalRecordsAsync();
+                }
+                else if (userRole == "Doctor" && !string.IsNullOrEmpty(doctorIdClaim) && int.TryParse(doctorIdClaim, out int doctorId))
+                {
+                    // Doctor sees only records they created
+                    records = await _medicalRecordService.GetMedicalRecordsByDoctorAsync(doctorId);
+                }
+                else if (userRole == "Patient" && !string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int patientId))
+                {
+                    // Patient sees only their own records
+                    records = await _medicalRecordService.GetMedicalRecordsByPatientAsync(patientId);
+                }
+                else
+                {
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view medical records" });
+                }
+
                 return Ok(records);
             }
             catch (Exception ex)
@@ -36,9 +64,10 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get medical record by ID
+        /// Get medical record by ID (filtered by role)
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<MedicalRecordDto>> GetMedicalRecord(int id)
         {
             try
@@ -46,6 +75,29 @@ namespace Hospital_Management_System.Controllers
                 var record = await _medicalRecordService.GetMedicalRecordByIdAsync(id);
                 if (record == null)
                     return NotFound($"Medical record with ID {id} not found");
+
+                // Check permissions
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var doctorIdClaim = User.FindFirstValue("DoctorId");
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                if (userRole != "Admin" && userRole != "Staff")
+                {
+                    if (userRole == "Doctor" && (!string.IsNullOrEmpty(doctorIdClaim) && int.TryParse(doctorIdClaim, out int doctorId)))
+                    {
+                        if (record.DoctorId != doctorId)
+                            return StatusCode(403, new { message = "Insufficient permissions", details = "You can only view your own medical records" });
+                    }
+                    else if (userRole == "Patient" && (!string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int patientId)))
+                    {
+                        if (record.PatientId != patientId)
+                            return StatusCode(403, new { message = "Insufficient permissions", details = "You can only view your own medical records" });
+                    }
+                    else
+                    {
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view this medical record" });
+                    }
+                }
 
                 return Ok(record);
             }
@@ -60,10 +112,25 @@ namespace Hospital_Management_System.Controllers
         /// Get medical records by patient
         /// </summary>
         [HttpGet("patient/{patientId}")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<MedicalRecordDto>>> GetMedicalRecordsByPatient(int patientId)
         {
             try
             {
+                // Check permissions
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                if (userRole == "Patient" && (!string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int loggedInPatientId)))
+                {
+                    if (patientId != loggedInPatientId)
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You can only view your own medical records" });
+                }
+                else if (userRole != "Admin" && userRole != "Doctor" && userRole != "Staff")
+                {
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view medical records" });
+                }
+
                 var records = await _medicalRecordService.GetMedicalRecordsByPatientAsync(patientId);
                 return Ok(records);
             }
@@ -78,6 +145,7 @@ namespace Hospital_Management_System.Controllers
         /// Get medical records by doctor
         /// </summary>
         [HttpGet("doctor/{doctorId}")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<MedicalRecordDto>>> GetMedicalRecordsByDoctor(int doctorId)
         {
             try
@@ -96,6 +164,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new medical record
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<MedicalRecordDto>> CreateMedicalRecord(CreateMedicalRecordDto createMedicalRecordDto)
         {
             try
@@ -121,12 +190,27 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing medical record
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<MedicalRecordDto>> UpdateMedicalRecord(int id, UpdateMedicalRecordDto updateMedicalRecordDto)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Check permissions - Admin and Staff can update any record, Doctor can only update their own
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var doctorIdClaim = User.FindFirstValue("DoctorId");
+
+                if (userRole == "Doctor" && !string.IsNullOrEmpty(doctorIdClaim) && int.TryParse(doctorIdClaim, out int doctorId))
+                {
+                    var existingRecord = await _medicalRecordService.GetMedicalRecordByIdAsync(id);
+                    if (existingRecord == null)
+                        return NotFound($"Medical record with ID {id} not found");
+
+                    if (existingRecord.DoctorId != doctorId)
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You can only update your own medical records" });
+                }
 
                 var record = await _medicalRecordService.UpdateMedicalRecordAsync(id, updateMedicalRecordDto);
                 if (record == null)
@@ -145,6 +229,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a medical record
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteMedicalRecord(int id)
         {
             try
@@ -166,6 +251,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if medical record exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> MedicalRecordExists(int id)
         {
             try

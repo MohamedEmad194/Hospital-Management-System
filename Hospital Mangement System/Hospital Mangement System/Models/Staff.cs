@@ -61,9 +61,13 @@ namespace Hospital_Management_System.Models
 
         // Foreign Keys
         public int DepartmentId { get; set; }
+        public string? UserId { get; set; }
 
         // Navigation properties
         [ForeignKey("DepartmentId")]
         public virtual Department? Department { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 }

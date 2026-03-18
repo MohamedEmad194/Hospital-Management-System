@@ -1,75 +1,652 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { forgotPassword } from '../api/auth';
 
 export default function Login() {
+    const { t } = useTranslation();
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
-    const [email, setEmail] = useState('admin@hospital.com');
-    const [password, setPassword] = useState('Admin@123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [role, setRole] = useState('Admin'); // Admin, Doctor, Patient, Nurse
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showReset, setShowReset] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
+    const [resetStatus, setResetStatus] = useState({ type: '', message: '' });
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            await login(email, password);
+            await login(email, password, role);
             navigate('/');
         } catch (err) {
-            console.error('Login error:', err);
-            
-            // Extract meaningful error message
-            let errorMessage = 'Login failed';
-            
-            if (err?.response?.data) {
-                if (typeof err.response.data === 'string') {
-                    errorMessage = err.response.data;
-                } else if (err.response.data.message) {
-                    errorMessage = err.response.data.message;
-                } else if (err.response.data.errors) {
-                    // Handle validation errors
-                    const errors = err.response.data.errors;
-                    errorMessage = Object.values(errors).flat().join(', ');
-                }
-            } else if (err?.message) {
-                if (err.message.includes('Network Error')) {
-                    errorMessage = 'Cannot connect to server. Please check if the backend is running.';
-                } else if (err.message.includes('ERR_CERT_AUTHORITY_INVALID')) {
-                    errorMessage = 'SSL certificate error. Please accept the certificate in your browser.';
-                } else {
-                    errorMessage = err.message;
-                }
+            // Simplified error handling with short messages
+            let errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+            let errorHint = '';
+
+            // Network errors
+            if (err?.message?.includes('Network Error') || err?.code === 'ECONNREFUSED') {
+                errorMessage = 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم';
+                setError(errorMessage);
+                return;
             }
-            
-            setError(errorMessage);
+
+            // SSL errors
+            if (err?.message?.includes('ERR_CERT_AUTHORITY_INVALID')) {
+                errorMessage = 'خطأ في شهادة SSL';
+                setError(errorMessage);
+                return;
+            }
+
+            // API response errors
+            if (err?.response?.data) {
+                const responseData = err.response.data;
+                
+                // Check if it's a password error
+                if (responseData.details?.includes('Incorrect password') || 
+                    responseData.details?.includes('كلمة المرور غير صحيحة')) {
+                    errorMessage = 'كلمة المرور غير صحيحة';
+                    
+                    // Extract default password hint
+                    if (responseData.details?.includes('Default passwords')) {
+                        const passwordMatch = responseData.details.match(/Patient@123|Doctor@123|Admin@123|Staff@123/g);
+                        if (passwordMatch && passwordMatch.length > 0) {
+                            const rolePasswords = {
+                                'Patient': 'Patient@123',
+                                'Doctor': 'Doctor@123',
+                                'Admin': 'Admin@123',
+                                'Staff': 'Staff@123'
+                            };
+                            const selectedPassword = rolePasswords[role] || passwordMatch[0];
+                            errorHint = `كلمة المرور الافتراضية: ${selectedPassword}`;
+                        }
+                    }
+                }
+                // Check if email not found
+                else if (responseData.details?.includes('Email not found') || 
+                         responseData.details?.includes('البريد الإلكتروني غير موجود')) {
+                    errorMessage = 'البريد الإلكتروني غير موجود في النظام';
+                    errorHint = 'تأكد من البريد الإلكتروني أو قم بإنشاء حساب جديد';
+                }
+                // Check if role mismatch
+                else if (responseData.details?.includes('does not have role') || 
+                         responseData.details?.includes('لا يملك الدور')) {
+                    errorMessage = 'الدور المحدد غير صحيح';
+                    const userRoles = responseData.userRoles || [];
+                    if (userRoles.length > 0) {
+                        errorHint = `الحساب لديه الأدوار: ${userRoles.join(', ')}`;
+                    }
+                }
+                // Generic API error
+                else if (responseData.message) {
+                    // Simplify common messages
+                    if (responseData.message.includes('Invalid email or password')) {
+                        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+                    } else {
+                        errorMessage = responseData.message;
+                    }
+                }
+            } 
+            // Generic error
+            else if (err?.message) {
+                errorMessage = err.message.length > 50 ? 'حدث خطأ أثناء تسجيل الدخول' : err.message;
+            }
+
+            // Set error with hint if available
+            setError(errorHint ? `${errorMessage}\n\n💡 ${errorHint}` : errorMessage);
         } finally {
             setLoading(false);
         }
     }
 
+    async function handleForgotPassword(e) {
+        e.preventDefault();
+        setResetStatus({ type: '', message: '' });
+        setResetLoading(true);
+
+        try {
+            const targetEmail = resetEmail || email;
+            if (!targetEmail) {
+                setResetStatus({ type: 'error', message: 'رجاءً أدخل البريد الإلكتروني لإرسال رابط إعادة التعيين.' });
+                return;
+            }
+
+            await forgotPassword(targetEmail);
+            setResetStatus({ type: 'success', message: 'تم إرسال رابط إعادة التعيين إلى بريدك إذا كان الحساب موجوداً.' });
+        } catch (err) {
+            console.error('Forgot password error:', err);
+            setResetStatus({ type: 'error', message: 'تعذر إرسال رابط إعادة التعيين. حاول لاحقاً.' });
+        } finally {
+            setResetLoading(false);
+        }
+    }
+
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-            <form onSubmit={handleSubmit} className="card elevate" style={{ width: 380, padding: 28, background: 'var(--hms-surface)' }}>
-                <div style={{ display: 'grid', gap: 6, marginBottom: 16 }}>
-                    <div style={{ color: 'var(--hms-primary)', fontWeight: 800, fontSize: 14, letterSpacing: 1.5 }}>HMS</div>
-                    <h2 style={{ margin: 0, color: 'var(--hms-text)' }}>Welcome back</h2>
-                    <p style={{ color: 'var(--hms-text-dim)', margin: 0 }}>Sign in to continue</p>
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+            position: 'relative',
+            padding: '20px',
+            overflow: 'hidden'
+        }}>
+            <div style={{
+                position: 'absolute',
+                top: '-50%',
+                right: '-50%',
+                width: '800px',
+                height: '800px',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                borderRadius: '50%',
+                zIndex: 0
+            }} />
+            <div style={{
+                position: 'absolute',
+                bottom: '-30%',
+                left: '-30%',
+                width: '600px',
+                height: '600px',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+                borderRadius: '50%',
+                zIndex: 0
+            }} />
+            
+            <form 
+                onSubmit={handleSubmit} 
+                className="card elevate fade-in" 
+                style={{ 
+                    width: '100%',
+                    maxWidth: 420, 
+                    padding: '40px 32px',
+                    background: 'rgba(255, 255, 255, 0.98)', 
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '28px',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.3)',
+                    border: '1px solid rgba(255,255,255,0.5)',
+                    position: 'relative',
+                    zIndex: 1
+                }}
+            >
+                {/* Logo/Brand Section */}
+                <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 16, 
+                    marginBottom: 32,
+                    textAlign: 'center'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 8,
+                        background: 'transparent',
+                        position: 'relative'
+                    }}>
+                        <div style={{
+                            background: 'white',
+                            display: 'inline-block',
+                            position: 'relative'
+                    }}>
+                        <img 
+                            src={`${process.env.PUBLIC_URL}/hospital-logo.png`}
+                                alt="AL HAYAT Hospital Management System Logo"
+                            style={{
+                                    maxWidth: '380px',
+                                    width: 'auto',
+                                    height: 'auto',
+                                    maxHeight: '280px',
+                                objectFit: 'contain',
+                                display: 'block',
+                                    mixBlendMode: 'multiply',
+                                    filter: 'drop-shadow(0 8px 20px rgba(102, 126, 234, 0.3))'
+                            }}
+                            onError={(e) => {
+                                // Fallback to logo.png if hospital-logo.png doesn't exist
+                                e.target.src = `${process.env.PUBLIC_URL}/logo.png`;
+                            }}
+                        />
+                        </div>
+                    </div>
+                    <div style={{ 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        alignItems: 'center'
+                    }}>
+                        <h1 style={{ 
+                            margin: 0, 
+                            color: '#1a365d',
+                            fontSize: '32px',
+                            fontWeight: 800,
+                            letterSpacing: '-0.5px',
+                            fontFamily: 'sans-serif'
+                        }}>
+                            AL HAYAT
+                        </h1>
+                        <p style={{ 
+                            margin: 0,
+                            color: '#4a5568',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            letterSpacing: '0.5px'
+                    }}>
+                            Hospital Management System
+                        </p>
+                    </div>
+                    <h2 style={{ 
+                        margin: 0, 
+                        marginTop: 8,
+                        background: 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        letterSpacing: '-0.5px'
+                    }}>
+                        {t('login.welcome')}
+                    </h2>
+                    <p style={{ 
+                        color: '#718096', 
+                        margin: 0,
+                        fontSize: '14px',
+                        lineHeight: 1.6
+                    }}>
+                        {t('login.subtitle')}
+                    </p>
                 </div>
-                {error ? <div style={{ color: '#ff7a7a', marginBottom: 12 }}>{String(error)}</div> : null}
-                <div style={{ marginBottom: 12 }}>
-                    <label htmlFor="email" style={{ display: 'block', marginBottom: 6, color: 'var(--hms-text-dim)' }}>Email</label>
-                    <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: 12, borderRadius: 10 }} />
+                {error ? (
+                    <div style={{ 
+                        color: '#c62828', 
+                        marginBottom: 20, 
+                        padding: 16, 
+                        borderRadius: 14, 
+                        background: 'linear-gradient(135deg, #ffebee 0%, #fce4ec 100%)', 
+                        border: '2px solid #ef5350',
+                        fontSize: 13,
+                        boxShadow: '0 4px 12px rgba(239, 83, 80, 0.2)',
+                        animation: 'slideUp 0.3s ease-out'
+                    }}>
+                        <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'flex-start', 
+                            gap: 12,
+                            marginBottom: error.includes('💡') ? 12 : 0
+                        }}>
+                            <span style={{ fontSize: 24, lineHeight: 1 }}>⚠️</span>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ 
+                                    fontWeight: 700, 
+                                    marginBottom: error.includes('💡') ? 10 : 0,
+                                    fontSize: 14,
+                                    lineHeight: 1.6,
+                                    color: '#b71c1c'
+                                }}>
+                                    {error.split('\n\n')[0]}
+                                </div>
+                                {error.includes('💡') && (
+                                    <div style={{ 
+                                        marginTop: 12,
+                                        padding: 12,
+                                        background: '#fff8e1',
+                                        borderRadius: 8,
+                                        border: '1px solid #ffc107',
+                                        fontSize: 12,
+                                        color: '#856404',
+                                        lineHeight: 1.6,
+                                        boxShadow: '0 2px 8px rgba(255, 193, 7, 0.15)'
+                                    }}>
+                                        <span style={{ fontSize: 16, marginLeft: 4 }}>💡</span> {error.split('💡')[1]?.trim()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+                <div style={{ marginBottom: 16 }}>
+                    <label htmlFor="role" style={{ 
+                        display: 'block', 
+                        marginBottom: 8, 
+                        color: '#4a5568',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}>
+                        {t('login.role')}
+                    </label>
+                    <select 
+                        id="role" 
+                        value={role} 
+                        onChange={(e) => setRole(e.target.value)} 
+                        required 
+                        style={{ 
+                            width: '100%', 
+                            padding: '12px 16px', 
+                            borderRadius: 14, 
+                            border: '2px solid #e2e8f0', 
+                            background: 'white', 
+                            fontSize: 14,
+                            fontWeight: 500,
+                            color: '#2d3748',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                        onFocus={(e) => {
+                            e.target.style.borderColor = '#667eea';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.15)';
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = '#e2e8f0';
+                            e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                        }}
+                    >
+                        <option value="Admin">{t('login.roles.admin')}</option>
+                        <option value="Doctor">{t('login.roles.doctor')}</option>
+                        <option value="Patient">{t('login.roles.patient')}</option>
+                        <option value="Nurse">{t('login.roles.nurse')}</option>
+                    </select>
                 </div>
                 <div style={{ marginBottom: 16 }}>
-                    <label htmlFor="password" style={{ display: 'block', marginBottom: 6, color: 'var(--hms-text-dim)' }}>Password</label>
-                    <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: 12, borderRadius: 10 }} />
+                    <label htmlFor="email" style={{ 
+                        display: 'block', 
+                        marginBottom: 8, 
+                        color: '#4a5568',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}>
+                        {t('login.email')}
+                    </label>
+                    <input 
+                        id="email" 
+                        type="email" 
+                        value={email} 
+                        onChange={(e) => setEmail(e.target.value)} 
+                        required 
+                        placeholder="example@hospital.com"
+                        style={{ 
+                            width: '100%', 
+                            padding: '12px 16px', 
+                            borderRadius: 14,
+                            border: '2px solid #e2e8f0',
+                            background: 'white',
+                            fontSize: 14,
+                            color: '#2d3748',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                        onFocus={(e) => {
+                            e.target.style.borderColor = '#667eea';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.15)';
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = '#e2e8f0';
+                            e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                        }}
+                    />
                 </div>
-                <button type="submit" disabled={loading} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid var(--hms-primary-600)', background: 'linear-gradient(135deg, var(--hms-primary) 0%, var(--hms-accent) 100%)', color: '#ffffff', fontWeight: 800 }}>
-                    {loading ? 'Signing in…' : 'Sign In'}
-                </button>
+                <div style={{ marginBottom: 18 }}>
+                    <label htmlFor="password" style={{ 
+                        display: 'block', 
+                        marginBottom: 8, 
+                        color: '#4a5568',
+                        fontSize: '13px',
+                        fontWeight: 600
+                    }}>
+                        {t('login.password')}
+                    </label>
+                    <input 
+                        id="password" 
+                        type="password" 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required 
+                        placeholder="••••••••"
+                        style={{ 
+                            width: '100%', 
+                            padding: '12px 16px', 
+                            borderRadius: 14,
+                            border: '2px solid #e2e8f0',
+                            background: 'white',
+                            fontSize: 14,
+                            color: '#2d3748',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                        onFocus={(e) => {
+                            e.target.style.borderColor = '#667eea';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.15)';
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = '#e2e8f0';
+                            e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                        }}
+                    />
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        marginTop: 10, 
+                        fontSize: 13
+                    }}>
+                        <button
+                            type="button"
+                            onClick={() => { setShowReset(!showReset); setResetEmail(email); }}
+                            style={{ 
+                                background: 'transparent', 
+                                border: 'none', 
+                                color: '#667eea', 
+                                cursor: 'pointer', 
+                                padding: '4px 0',
+                                fontWeight: 600,
+                                fontSize: 13,
+                                transition: 'color 0.2s ease',
+                                textDecoration: 'none'
+                            }}
+                            onMouseEnter={(e) => e.target.style.color = '#764ba2'}
+                            onMouseLeave={(e) => e.target.style.color = '#667eea'}
+                        >
+                            نسيت كلمة المرور؟
+                        </button>
+                        {resetStatus.message && (
+                            <span style={{ 
+                                color: resetStatus.type === 'success' ? '#48bb78' : '#f56565',
+                                fontSize: 12,
+                                fontWeight: 500
+                            }}>
+                                {resetStatus.message}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                {showReset && (
+                    <div style={{ 
+                        marginBottom: 20, 
+                        padding: 20, 
+                        borderRadius: 14, 
+                        background: 'linear-gradient(135deg, #f6f7fb 0%, #eef2ff 100%)', 
+                        border: '2px solid #e0e3f0',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                        animation: 'slideUp 0.3s ease-out'
+                    }}>
+                        <div style={{ 
+                            fontWeight: 700, 
+                            marginBottom: 12, 
+                            color: '#667eea',
+                            fontSize: 16
+                        }}>
+                            إعادة تعيين كلمة المرور
+                        </div>
+                        <div style={{ display: 'grid', gap: 12 }}>
+                            <input
+                                type="email"
+                                placeholder="أدخل بريدك الإلكتروني"
+                                value={resetEmail || email}
+                                onChange={(e) => setResetEmail(e.target.value)}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '12px 14px', 
+                                    borderRadius: 10, 
+                                    border: '2px solid #e2e8f0',
+                                    background: 'white',
+                                    fontSize: 14,
+                                    outline: 'none',
+                                    transition: 'all 0.2s ease',
+                                    boxSizing: 'border-box'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#667eea';
+                                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#e2e8f0';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                disabled={resetLoading}
+                                style={{ 
+                                    padding: '12px 20px', 
+                                    borderRadius: 10, 
+                                    border: 'none',
+                                    background: resetLoading ? '#a0aec0' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    color: '#fff', 
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                    cursor: resetLoading ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: resetLoading ? 'none' : '0 4px 12px rgba(102, 126, 234, 0.3)'
+                                }}
+                                onMouseEnter={(e) => {
+                                    if (!resetLoading) {
+                                        e.target.style.transform = 'translateY(-2px)';
+                                        e.target.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
+                                    }
+                                }}
+                                onMouseLeave={(e) => {
+                                    if (!resetLoading) {
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+                                    }
+                                }}
+                            >
+                                {resetLoading ? 'جارٍ الإرسال...' : 'أرسل رابط إعادة التعيين'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                    <button 
+                        type="submit" 
+                        disabled={loading} 
+                        style={{ 
+                            flex: 1, 
+                            padding: '14px 20px', 
+                            borderRadius: 14, 
+                            border: 'none',
+                            background: loading 
+                                ? 'linear-gradient(135deg, #a0aec0 0%, #718096 100%)' 
+                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                            color: '#ffffff', 
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: loading 
+                                ? 'none' 
+                                : '0 6px 20px rgba(102, 126, 234, 0.35)',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!loading) {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 10px 25px rgba(102, 126, 234, 0.45)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!loading) {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.35)';
+                            }
+                        }}
+                    >
+                        {loading ? (
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                <span className="loading-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                                {t('login.signingIn')}
+                            </span>
+                        ) : (
+                            t('login.signIn')
+                        )}
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => navigate('/register')} 
+                        style={{ 
+                            flex: 1, 
+                            padding: '14px 20px', 
+                            borderRadius: 14, 
+                            border: '2px solid #667eea', 
+                            background: 'transparent', 
+                            color: '#667eea', 
+                            fontWeight: 700,
+                            fontSize: 14,
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(102, 126, 234, 0.08)';
+                            e.target.style.transform = 'translateY(-2px)';
+                            e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 8px rgba(102, 126, 234, 0.1)';
+                        }}
+                    >
+                        {t('login.createAccount')}
+                    </button>
+                </div>
             </form>
+            
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.8; }
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                img[alt="AL HAYAT Hospital Management System Logo"] {
+                    mix-blend-mode: multiply !important;
+                }
+            `}</style>
         </div>
     );
 }

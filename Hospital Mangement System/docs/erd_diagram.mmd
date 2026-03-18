@@ -1,0 +1,300 @@
+erDiagram
+    User ||--o{ Patient : "has"
+    User ||--o{ Doctor : "has"
+    User ||--o{ Staff : "has"
+    
+    Patient ||--o{ Appointment : "has"
+    Patient ||--o{ MedicalRecord : "has"
+    Patient ||--o{ Prescription : "has"
+    Patient ||--o{ Bill : "has"
+    
+    Doctor }o--|| Department : "belongs_to"
+    Doctor ||--o{ Appointment : "has"
+    Doctor ||--o{ MedicalRecord : "creates"
+    Doctor ||--o{ Prescription : "writes"
+    Doctor ||--o{ Schedule : "has"
+    
+    Department ||--o{ Doctor : "has"
+    Department ||--o{ Room : "has"
+    Department ||--o{ Staff : "has"
+    
+    Room ||--o{ Appointment : "used_in"
+    
+    Prescription ||--o{ PrescriptionItem : "contains"
+    PrescriptionItem }o--o| Medicine : "references"
+    
+    Bill ||--o{ BillItem : "contains"
+    
+    Patient {
+        int Id PK
+        string FirstName
+        string LastName
+        string NationalId UK
+        string Email UK
+        string PhoneNumber
+        DateTime DateOfBirth
+        string Gender
+        string Address
+        string EmergencyContactName
+        string EmergencyContactPhone
+        string InsuranceProvider
+        string InsuranceNumber
+        string MedicalHistory
+        string Allergies
+        string CurrentMedications
+        bool IsActive
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Doctor {
+        int Id PK
+        string FirstName
+        string LastName
+        string NationalId UK
+        string Email UK
+        string PhoneNumber
+        DateTime DateOfBirth
+        string Gender
+        string Address
+        string LicenseNumber UK
+        string Specialization
+        string SubSpecialization
+        int YearsOfExperience
+        string Education
+        string Certifications
+        string Languages
+        decimal ConsultationFee
+        TimeSpan WorkingHoursStart
+        TimeSpan WorkingHoursEnd
+        bool IsAvailable
+        bool IsActive
+        int DepartmentId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Department {
+        int Id PK
+        string Name
+        string Description
+        string HeadOfDepartment
+        string PhoneNumber
+        string Location
+        bool IsActive
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Staff {
+        int Id PK
+        string FirstName
+        string LastName
+        string NationalId UK
+        string Email UK
+        string PhoneNumber
+        DateTime DateOfBirth
+        string Gender
+        string Address
+        string Position
+        string EmployeeId
+        DateTime HireDate
+        decimal Salary
+        string Qualification
+        string Skills
+        TimeSpan WorkingHoursStart
+        TimeSpan WorkingHoursEnd
+        bool IsActive
+        int DepartmentId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Appointment {
+        int Id PK
+        DateTime AppointmentDate
+        TimeSpan AppointmentTime
+        string Status
+        string Reason
+        string Notes
+        string Diagnosis
+        string Treatment
+        decimal ConsultationFee
+        bool IsFollowUp
+        int PatientId FK
+        int DoctorId FK
+        int RoomId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Room {
+        int Id PK
+        string RoomNumber UK
+        string RoomType
+        string Floor
+        string Building
+        string Description
+        int Capacity
+        decimal HourlyRate
+        bool IsAvailable
+        bool IsActive
+        int DepartmentId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    MedicalRecord {
+        int Id PK
+        DateTime RecordDate
+        string RecordType
+        string Symptoms
+        string Diagnosis
+        string Treatment
+        string Prescription
+        string Notes
+        string LabResults
+        string ImagingResults
+        string VitalSigns
+        string BloodPressure
+        string Temperature
+        string HeartRate
+        string Weight
+        string Height
+        int PatientId FK
+        int DoctorId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Prescription {
+        int Id PK
+        DateTime PrescriptionDate
+        DateTime ValidUntil
+        string Instructions
+        string Notes
+        bool IsDispensed
+        DateTime DispensedDate
+        string Status
+        int PatientId FK
+        int DoctorId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    PrescriptionItem {
+        int Id PK
+        string MedicineName
+        string Dosage
+        string Frequency
+        string Duration
+        string Instructions
+        int Quantity
+        decimal UnitPrice
+        decimal TotalPrice
+        int PrescriptionId FK
+        int MedicineId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Medicine {
+        int Id PK
+        string Name
+        string GenericName
+        string DosageForm
+        string Strength
+        string Manufacturer
+        string Description
+        string Indications
+        string Contraindications
+        string SideEffects
+        string DosageInstructions
+        decimal Price
+        int StockQuantity
+        int MinimumStockLevel
+        string Unit
+        DateTime ExpiryDate
+        string BatchNumber
+        bool RequiresPrescription
+        bool IsActive
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Bill {
+        int Id PK
+        string BillNumber UK
+        DateTime BillDate
+        DateTime DueDate
+        string Status
+        decimal SubTotal
+        decimal TaxAmount
+        decimal DiscountAmount
+        decimal TotalAmount
+        decimal PaidAmount
+        decimal RemainingAmount
+        string PaymentMethod
+        DateTime PaymentDate
+        string Notes
+        string InsuranceProvider
+        string InsuranceNumber
+        decimal InsuranceCoverage
+        int PatientId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    BillItem {
+        int Id PK
+        string Description
+        string Category
+        int Quantity
+        decimal UnitPrice
+        decimal TotalPrice
+        string Notes
+        int BillId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Schedule {
+        int Id PK
+        DayOfWeek DayOfWeek
+        TimeSpan StartTime
+        TimeSpan EndTime
+        string Notes
+        bool IsAvailable
+        int DoctorId FK
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+    
+    Feature {
+        int Id PK
+        string Icon
+        string TitleEn
+        string TitleAr
+        string DescriptionEn
+        string DescriptionAr
+        string Color
+        int DisplayOrder
+        bool IsActive
+        DateTime CreatedAt
+        DateTime UpdatedAt
+        bool IsDeleted
+    }
+

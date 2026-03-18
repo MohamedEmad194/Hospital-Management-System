@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createDoctor } from '../api/doctors';
 import { fetchDepartments } from '../api/departments';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function AddDoctor() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [departments, setDepartments] = useState([]);
     const [error, setError] = useState('');
@@ -78,7 +80,7 @@ export default function AddDoctor() {
             await createDoctor(payload);
             navigate('/doctors');
         } catch (err) {
-            setError(err?.response?.data || 'Failed to create doctor');
+            setError(err?.response?.data || t('addDoctor.failed'));
         } finally {
             setLoading(false);
         }
@@ -86,69 +88,69 @@ export default function AddDoctor() {
 
     return (
         <div style={{ padding: 24 }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Add Doctor</h2>
+            <h2 style={{ marginTop: 0, marginBottom: 16 }}>{t('addDoctor.title')}</h2>
             <form onSubmit={handleSubmit} className="card" style={{ padding: 20, display: 'grid', gap: 12, maxWidth: 800 }}>
                 {error ? <div style={{ color: '#b00020' }}>{String(error)}</div> : null}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                     <div>
-                        <label>First Name</label>
+                        <label>{t('addDoctor.fields.firstName')}</label>
                         <input value={form.firstName} onChange={(e) => update('firstName', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Last Name</label>
+                        <label>{t('addDoctor.fields.lastName')}</label>
                         <input value={form.lastName} onChange={(e) => update('lastName', e.target.value)} required />
                     </div>
                     <div>
-                        <label>National ID</label>
+                        <label>{t('addDoctor.fields.nationalId')}</label>
                         <input value={form.nationalId} onChange={(e) => update('nationalId', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Email</label>
+                        <label>{t('addDoctor.fields.email')}</label>
                         <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Phone</label>
+                        <label>{t('addDoctor.fields.phone')}</label>
                         <input value={form.phoneNumber} onChange={(e) => update('phoneNumber', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Date of Birth</label>
+                        <label>{t('addDoctor.fields.dateOfBirth')}</label>
                         <input type="date" value={form.dateOfBirth} onChange={(e) => update('dateOfBirth', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Gender</label>
+                        <label>{t('addDoctor.fields.gender')}</label>
                         <select value={form.gender} onChange={(e) => update('gender', e.target.value)} required>
-                            <option>Male</option>
-                            <option>Female</option>
+                            <option>{t('addDoctor.fields.male')}</option>
+                            <option>{t('addDoctor.fields.female')}</option>
                         </select>
                     </div>
                     <div>
-                        <label>License Number</label>
+                        <label>{t('addDoctor.fields.licenseNumber')}</label>
                         <input value={form.licenseNumber} onChange={(e) => update('licenseNumber', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Specialization</label>
+                        <label>{t('addDoctor.fields.specialization')}</label>
                         <input value={form.specialization} onChange={(e) => update('specialization', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Years of Experience</label>
+                        <label>{t('addDoctor.fields.yearsOfExperience')}</label>
                         <input type="number" min="0" max="50" value={form.yearsOfExperience} onChange={(e) => update('yearsOfExperience', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Consultation Fee</label>
+                        <label>{t('addDoctor.fields.consultationFee')}</label>
                         <input type="number" min="0" step="0.01" value={form.consultationFee} onChange={(e) => update('consultationFee', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Working Start</label>
+                        <label>{t('addDoctor.fields.workingStart')}</label>
                         <input type="time" value={form.workingHoursStart} onChange={(e) => update('workingHoursStart', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Working End</label>
+                        <label>{t('addDoctor.fields.workingEnd')}</label>
                         <input type="time" value={form.workingHoursEnd} onChange={(e) => update('workingHoursEnd', e.target.value)} required />
                     </div>
                     <div>
-                        <label>Department</label>
+                        <label>{t('addDoctor.fields.department')}</label>
                         <select value={form.departmentId} onChange={(e) => update('departmentId', e.target.value)} required>
-                            <option value="">Select department</option>
+                            <option value="">{t('addDoctor.fields.selectDepartment')}</option>
                             {departments.map((d) => (
                                 <option key={d.id} value={d.id}>{d.name}</option>
                             ))}
@@ -156,8 +158,8 @@ export default function AddDoctor() {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="submit" disabled={loading || !canSubmit} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-primary-600)', background: 'var(--hms-primary)', color: '#fff', fontWeight: 700 }}>{loading ? 'Saving…' : 'Save Doctor'}</button>
-                    <button type="button" onClick={() => navigate(-1)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-border)', background: 'var(--hms-surface)' }}>Cancel</button>
+                    <button type="submit" disabled={loading || !canSubmit} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-primary-600)', background: 'var(--hms-primary)', color: '#fff', fontWeight: 700 }}>{loading ? t('addDoctor.actions.saving') : t('addDoctor.actions.save')}</button>
+                    <button type="button" onClick={() => navigate(-1)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--hms-border)', background: 'var(--hms-surface)' }}>{t('addDoctor.actions.cancel')}</button>
                 </div>
             </form>
         </div>

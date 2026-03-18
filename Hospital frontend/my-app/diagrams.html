@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project UML Diagrams</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .diagram-container { margin-bottom: 50px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        h2 { text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>UML Diagrams for Hospital Management System</h1>
+
+    <div class="diagram-container">
+        <h2>Class Diagram (Entities)</h2>
+        <pre class="mermaid">
+classDiagram
+    class Patient {
+        +String firstName
+        +String lastName
+        +String nationalId
+        +String email
+        +String phoneNumber
+        +Date dateOfBirth
+        +String gender
+        +String address
+        +createPatient()
+    }
+    class Doctor {
+        +String firstName
+        +String lastName
+        +String nationalId
+        +String email
+        +String phoneNumber
+        +Date dateOfBirth
+        +String gender
+        +String address
+        +String licenseNumber
+        +String specialization
+        +Integer yearsOfExperience
+        +Float consultationFee
+        +Time workingHoursStart
+        +Time workingHoursEnd
+        +Integer departmentId
+        +createDoctor()
+    }
+    class Department {
+        +Integer id
+        +String name
+        +fetchDepartments()
+    }
+    class Appointment {
+        +Date date
+        +Integer doctorId
+        +Integer patientId
+        +String status
+    }
+    class Bill {
+        +Float amount
+        +Date date
+        +Integer patientId
+        +String status
+    }
+    
+    Doctor "1" -- "*" Appointment : has
+    Patient "1" -- "*" Appointment : has
+    Doctor "*" -- "1" Department : belongs to
+    Patient "1" -- "*" Bill : has
+        </pre>
+    </div>
+
+    <div class="diagram-container">
+        <h2>Component Diagram (Architecture)</h2>
+        <pre class="mermaid">
+graph TD
+    App --> AuthProvider
+    App --> BrowserRouter
+    BrowserRouter --> Routes
+    Routes --> Login
+    Routes --> Register
+    Routes --> Layout
+    Layout --> Dashboard
+    Layout --> NursingServices
+    Layout --> ProtectedRoute
+    ProtectedRoute --> Chatbot
+    ProtectedRoute --> AppointmentsList
+    ProtectedRoute --> BillsList
+    ProtectedRoute --> AdminRoute
+    AdminRoute --> PatientsList
+    AdminRoute --> DoctorsList
+    AdminRoute --> DepartmentsList
+    AdminRoute --> MedicinesList
+    AdminRoute --> RoomsList
+    AdminRoute --> AddPatient
+    AdminRoute --> AddDoctor
+    AdminRoute --> AddAppointment
+    AdminRoute --> AddBill
+    AdminRoute --> AddDepartment
+    AdminRoute --> AddMedicine
+    AdminRoute --> AddRoom
+        </pre>
+    </div>
+
+    <div class="diagram-container">
+        <h2>Sequence Diagram (Login Flow)</h2>
+        <pre class="mermaid">
+sequenceDiagram
+    participant User
+    participant Login
+    participant AuthContext
+    participant API
+    participant Router
+
+    User->>Login: Enter Email & Password
+    User->>Login: Click Submit
+    Login->>AuthContext: login(email, password)
+    AuthContext->>API: POST /auth/login
+    alt Success
+        API-->>AuthContext: Return Token & User Data
+        AuthContext-->>Login: Success
+        Login->>Router: navigate('/')
+    else Failure
+        API-->>AuthContext: Error (401/400)
+        AuthContext-->>Login: Throw Error
+        Login->>User: Show Error Message
+    end
+        </pre>
+    </div>
+
+</body>
+</html>

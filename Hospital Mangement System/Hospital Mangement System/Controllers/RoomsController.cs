@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -21,6 +22,7 @@ namespace Hospital_Management_System.Controllers
         /// Get all rooms
         /// </summary>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetRooms()
         {
             try
@@ -39,6 +41,7 @@ namespace Hospital_Management_System.Controllers
         /// Get room by ID
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<RoomDto>> GetRoom(int id)
         {
             try
@@ -60,6 +63,7 @@ namespace Hospital_Management_System.Controllers
         /// Get rooms by department
         /// </summary>
         [HttpGet("department/{departmentId}")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetRoomsByDepartment(int departmentId)
         {
             try
@@ -78,6 +82,7 @@ namespace Hospital_Management_System.Controllers
         /// Get available rooms
         /// </summary>
         [HttpGet("available")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetAvailableRooms()
         {
             try
@@ -96,6 +101,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new room
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<RoomDto>> CreateRoom(CreateRoomDto createRoomDto)
         {
             try
@@ -121,6 +127,7 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing room
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<RoomDto>> UpdateRoom(int id, UpdateRoomDto updateRoomDto)
         {
             try
@@ -149,6 +156,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a room
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeleteRoom(int id)
         {
             try
@@ -170,6 +178,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if room exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> RoomExists(int id)
         {
             try

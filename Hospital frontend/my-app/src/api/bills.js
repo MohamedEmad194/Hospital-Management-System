@@ -10,13 +10,8 @@ export async function fetchBill(id) {
     return data;
 }
 
-export async function overdueBills() {
-    const { data } = await apiClient.get('/Bills/overdue');
-    return data;
-}
-
-export async function outstandingAmount() {
-    const { data } = await apiClient.get('/Bills/outstanding-amount');
+export async function searchBills(params) {
+    const { data } = await apiClient.get('/Bills/search', { params });
     return data;
 }
 
@@ -27,6 +22,16 @@ export async function createBill(payload) {
 
 export async function updateBill(id, payload) {
     const { data } = await apiClient.put(`/Bills/${id}`, payload);
+    return data;
+}
+
+export async function overdueBills() {
+    const { data } = await apiClient.get('/Bills/overdue');
+    return data;
+}
+
+export async function outstandingAmount() {
+    const { data } = await apiClient.get('/Bills/outstanding-amount');
     return data;
 }
 

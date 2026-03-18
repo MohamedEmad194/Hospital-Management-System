@@ -1,11 +1,12 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { login as apiLogin, getProfile } from '../api/auth';
+import { login as apiLogin, register as apiRegister, getProfile } from '../api/auth';
 
 export const AuthContext = createContext({
     user: null,
     token: null,
     isAuthenticated: false,
     login: async () => {},
+    register: async () => {},
     logout: () => {},
 });
 
@@ -20,8 +21,16 @@ export function AuthProvider({ children }) {
         setUser(null);
     }, []);
 
-    const login = useCallback(async (email, password) => {
-        const data = await apiLogin(email, password);
+    const login = useCallback(async (email, password, role) => {
+        const data = await apiLogin(email, password, role);
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        return data;
+    }, []);
+
+    const register = useCallback(async (payload) => {
+        const data = await apiRegister(payload);
         localStorage.setItem('token', data.token);
         setToken(data.token);
         setUser(data.user);
@@ -42,7 +51,7 @@ export function AuthProvider({ children }) {
         return () => { cancelled = true; };
     }, [token, logout]);
 
-    const value = useMemo(() => ({ user, token, isAuthenticated, login, logout }), [user, token, isAuthenticated, login, logout]);
+    const value = useMemo(() => ({ user, token, isAuthenticated, login, register, logout }), [user, token, isAuthenticated, login, register, logout]);
 
     return (
         <AuthContext.Provider value={value}>

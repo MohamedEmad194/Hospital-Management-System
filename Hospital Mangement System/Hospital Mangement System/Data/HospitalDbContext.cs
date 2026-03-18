@@ -24,6 +24,8 @@ namespace Hospital_Management_System.Data
         public DbSet<Bill> Bills { get; set; }
         public DbSet<BillItem> BillItems { get; set; }
         public DbSet<Schedule> Schedules { get; set; }
+        public DbSet<Feature> Features { get; set; }
+        public DbSet<NursingUnit> NursingUnits { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -191,6 +193,11 @@ namespace Hospital_Management_System.Data
             // Medicine indexes
             builder.Entity<Medicine>()
                 .HasIndex(m => m.Name);
+
+            // NursingUnit indexes
+            builder.Entity<NursingUnit>()
+                .HasIndex(n => n.UnitId)
+                .IsUnique();
         }
 
         private void ConfigureConstraints(ModelBuilder builder)

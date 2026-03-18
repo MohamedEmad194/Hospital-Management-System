@@ -60,7 +60,13 @@ namespace Hospital_Management_System.Models
 
         public bool IsActive { get; set; } = true;
 
+        // Foreign Keys
+        public string? UserId { get; set; }
+
         // Navigation properties
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
+
         public virtual ICollection<Appointment>? Appointments { get; set; }
         public virtual ICollection<MedicalRecord>? MedicalRecords { get; set; }
         public virtual ICollection<Prescription>? Prescriptions { get; set; }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Hospital_Management_System.Data;
@@ -19,13 +20,21 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get dashboard statistics
+        /// Get dashboard statistics (public endpoint)
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("stats")]
         public async Task<ActionResult<DashboardStatsDto>> GetDashboardStats()
         {
             try
             {
+                // Check if database is accessible
+                if (!await _context.Database.CanConnectAsync())
+                {
+                    _logger.LogWarning("Database connection failed");
+                    return StatusCode(503, new { message = "Database is not available" });
+                }
+
                 var stats = new DashboardStatsDto
                 {
                     TotalPatients = await _context.Patients.CountAsync(p => !p.IsDeleted),
@@ -46,7 +55,7 @@ namespace Hospital_Management_System.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving dashboard statistics");
-                return StatusCode(500, "An error occurred while retrieving dashboard statistics");
+                return StatusCode(500, new { message = "An error occurred while retrieving dashboard statistics", error = ex.Message });
             }
         }
 
@@ -54,6 +63,7 @@ namespace Hospital_Management_System.Controllers
         /// Get recent appointments
         /// </summary>
         [HttpGet("recent-appointments")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<RecentAppointmentDto>>> GetRecentAppointments([FromQuery] int count = 10)
         {
             try
@@ -89,6 +99,7 @@ namespace Hospital_Management_System.Controllers
         /// Get appointments by status
         /// </summary>
         [HttpGet("appointments-by-status")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<AppointmentStatusDto>>> GetAppointmentsByStatus()
         {
             try
@@ -116,6 +127,7 @@ namespace Hospital_Management_System.Controllers
         /// Get revenue statistics
         /// </summary>
         [HttpGet("revenue")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<RevenueStatsDto>> GetRevenueStats()
         {
             try
@@ -155,6 +167,7 @@ namespace Hospital_Management_System.Controllers
         /// Get department statistics
         /// </summary>
         [HttpGet("department-stats")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<DepartmentStatsDto>>> GetDepartmentStats()
         {
             try

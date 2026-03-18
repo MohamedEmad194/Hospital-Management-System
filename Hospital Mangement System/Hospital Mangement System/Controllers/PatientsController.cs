@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Services;
 
@@ -18,9 +20,10 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get all patients
+        /// Get all patients (filtered by role)
         /// </summary>
         [HttpGet]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<PatientDto>>> GetPatients()
         {
             try
@@ -36,9 +39,10 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
-        /// Get patient by ID
+        /// Get patient by ID (filtered by role)
         /// </summary>
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<PatientDto>> GetPatient(int id)
         {
             try
@@ -46,6 +50,20 @@ namespace Hospital_Management_System.Controllers
                 var patient = await _patientService.GetPatientByIdAsync(id);
                 if (patient == null)
                     return NotFound($"Patient with ID {id} not found");
+
+                // Check permissions - Patient can only see their own data
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                if (userRole == "Patient" && (!string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int loggedInPatientId)))
+                {
+                    if (patient.Id != loggedInPatientId)
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You can only view your own patient data" });
+                }
+                else if (userRole != "Admin" && userRole != "Doctor" && userRole != "Staff")
+                {
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have access to view patient data" });
+                }
 
                 return Ok(patient);
             }
@@ -60,6 +78,7 @@ namespace Hospital_Management_System.Controllers
         /// Get patient by National ID
         /// </summary>
         [HttpGet("national-id/{nationalId}")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<PatientDto>> GetPatientByNationalId(string nationalId)
         {
             try
@@ -81,6 +100,7 @@ namespace Hospital_Management_System.Controllers
         /// Search patients
         /// </summary>
         [HttpGet("search")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<PatientDto>>> SearchPatients([FromQuery] string searchTerm)
         {
             try
@@ -102,6 +122,7 @@ namespace Hospital_Management_System.Controllers
         /// Create a new patient
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<PatientDto>> CreatePatient(CreatePatientDto createPatientDto)
         {
             try
@@ -127,12 +148,27 @@ namespace Hospital_Management_System.Controllers
         /// Update an existing patient
         /// </summary>
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult<PatientDto>> UpdatePatient(int id, UpdatePatientDto updatePatientDto)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Check permissions - Admin, Doctor, Staff can update any patient, Patient can only update themselves
+                var userRole = User.FindFirstValue(ClaimTypes.Role);
+                var patientIdClaim = User.FindFirstValue("PatientId");
+
+                if (userRole == "Patient" && (!string.IsNullOrEmpty(patientIdClaim) && int.TryParse(patientIdClaim, out int loggedInPatientId)))
+                {
+                    if (id != loggedInPatientId)
+                        return StatusCode(403, new { message = "Insufficient permissions", details = "You can only update your own profile" });
+                }
+                else if (userRole != "Admin" && userRole != "Doctor" && userRole != "Staff")
+                {
+                    return StatusCode(403, new { message = "Insufficient permissions", details = "You do not have permission to update patients" });
+                }
 
                 var patient = await _patientService.UpdatePatientAsync(id, updatePatientDto);
                 if (patient == null)
@@ -155,6 +191,7 @@ namespace Hospital_Management_System.Controllers
         /// Delete a patient
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> DeletePatient(int id)
         {
             try
@@ -176,6 +213,7 @@ namespace Hospital_Management_System.Controllers
         /// Check if patient exists
         /// </summary>
         [HttpHead("{id}")]
+        [Authorize]
         public async Task<ActionResult> PatientExists(int id)
         {
             try

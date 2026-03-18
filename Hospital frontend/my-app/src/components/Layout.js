@@ -1,39 +1,217 @@
-import React, { useContext } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
+import ChatbotWidget from './ChatbotWidget';
 
 export default function Layout() {
+    const { t, i18n } = useTranslation();
     const { user, logout } = useContext(AuthContext);
+    const location = useLocation();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const isArabic = i18n.language === 'ar';
+
+    useEffect(() => {
+        setMenuOpen(false);
+    }, [location.pathname]);
+
+    const navLinkClass = ({ isActive }) =>
+        `layout-nav__link ${isActive ? 'is-active' : ''}`;
+
+    const changeLanguage = (lng) => i18n.changeLanguage(lng);
+    const navAriaLabel = t('common.navigation', { defaultValue: 'Navigation' });
+    const openMenuLabel = t('common.openMenu', { defaultValue: 'Open menu' });
+    const closeMenuLabel = t('common.closeMenu', { defaultValue: 'Close menu' });
+    const changeLanguageLabel = t('common.changeLanguage', { defaultValue: 'Change language' });
+    const handleToggleMenu = () => setMenuOpen((prev) => !prev);
+    const roleLabel = user?.roles?.includes('Admin')
+        ? 'مدير النظام'
+        : user?.roles?.includes('Doctor')
+        ? 'طبيب'
+        : user?.roles?.includes('Patient')
+        ? 'مريض'
+        : 'مستخدم';
+
+    const adminNav = (
+        <>
+            <NavLink to="/nursing" className={navLinkClass}>
+                <span aria-hidden="true">🩺</span>
+                {t('sidebar.nursing')}
+            </NavLink>
+            <NavLink to="/patients" className={navLinkClass}>
+                <span aria-hidden="true">👥</span>
+                {t('sidebar.patients')}
+            </NavLink>
+            <NavLink to="/doctors" className={navLinkClass}>
+                <span aria-hidden="true">👨‍⚕️</span>
+                {t('sidebar.doctors')}
+            </NavLink>
+            <NavLink to="/appointments" className={navLinkClass}>
+                <span aria-hidden="true">📅</span>
+                {t('sidebar.appointments')}
+            </NavLink>
+            <NavLink to="/bills" className={navLinkClass}>
+                <span aria-hidden="true">💰</span>
+                {t('sidebar.bills')}
+            </NavLink>
+            <NavLink to="/departments" className={navLinkClass}>
+                <span aria-hidden="true">🏥</span>
+                {t('sidebar.departments')}
+            </NavLink>
+            <NavLink to="/rooms" className={navLinkClass}>
+                <span aria-hidden="true">🚪</span>
+                {t('sidebar.rooms')}
+            </NavLink>
+            <NavLink to="/medicines" className={navLinkClass}>
+                <span aria-hidden="true">💊</span>
+                {t('sidebar.medicines')}
+            </NavLink>
+        </>
+    );
+
+    const guestNav = (
+        <>
+            <NavLink to="/nursing" className={navLinkClass}>
+                <span aria-hidden="true">🩺</span>
+                {t('sidebar.nursing')}
+            </NavLink>
+            <NavLink to="/appointments" className={navLinkClass}>
+                <span aria-hidden="true">📅</span>
+                {t('common.myAppointments')}
+            </NavLink>
+            <NavLink to="/bills" className={navLinkClass}>
+                <span aria-hidden="true">💰</span>
+                {t('common.myBills')}
+            </NavLink>
+            <NavLink to="/reports" className={navLinkClass}>
+                <span aria-hidden="true">📋</span>
+                تقاريري الطبية
+            </NavLink>
+        </>
+    );
+
     return (
-        <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '260px 1fr', background: 'transparent' }}>
-            <aside className="card" style={{ borderRight: '1px solid var(--hms-border)', padding: 18, margin: 16, marginRight: 0, background: 'var(--hms-surface)' }}>
-                <div style={{ fontWeight: 800, marginBottom: 16, fontSize: 18, letterSpacing: 0.3 }}>
-                    <Link to="/" style={{ textDecoration: 'none', color: 'var(--hms-text)' }}>HMS Admin</Link>
-                </div>
-                <nav style={{ display: 'grid', gap: 8 }}>
-                    <NavLink to="/" end style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Dashboard</NavLink>
-                    <NavLink to="/patients" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Patients</NavLink>
-                    <NavLink to="/doctors" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Doctors</NavLink>
-                    <NavLink to="/appointments" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Appointments</NavLink>
-                    <NavLink to="/bills" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Bills</NavLink>
-                    <NavLink to="/departments" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Departments</NavLink>
-                    <NavLink to="/medicines" style={({ isActive }) => ({ padding: 12, borderRadius: 8, textDecoration: 'none', color: isActive ? '#ffffff' : 'var(--hms-text)', background: isActive ? 'var(--hms-primary)' : 'transparent' })}>Medicines</NavLink>
-                </nav>
-            </aside>
-            <main>
-                <header className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', margin: 16, background: 'var(--hms-surface)' }}>
-                    <div />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div style={{ color: 'var(--hms-text-dim)' }}>{user ? `${user.firstName} ${user.lastName}` : ''}</div>
-                        <button onClick={logout} style={{ padding: '8px 12px', border: '1px solid var(--hms-border)', borderRadius: 8, background: 'var(--hms-primary)', color: '#ffffff' }}>Logout</button>
+        <div className="layout-shell">
+            <header className="layout-header">
+                <div className={`layout-header__inner ${isArabic ? 'layout-header__inner--rtl' : ''}`}>
+                    <Link to="/" className="layout-brand" style={{ 
+                        textDecoration: 'none',
+                        border: 'none',
+                        background: 'transparent',
+                        boxShadow: 'none',
+                        padding: '8px 12px'
+                    }}>
+                        <img 
+                            src={`${process.env.PUBLIC_URL}/hospital-logo.png`}
+                            alt="Al-Hayat Hospital Logo"
+                            style={{
+                                width: 85,
+                                height: 85,
+                                objectFit: 'contain',
+                                marginRight: isArabic ? 0 : 12,
+                                marginLeft: isArabic ? 12 : 0,
+                                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))',
+                                imageRendering: 'crisp-edges'
+                            }}
+                            onError={(e) => {
+                                e.target.src = `${process.env.PUBLIC_URL}/logo.png`;
+                            }}
+                        />
+                        <div className="layout-brand__text">
+                            <div className="layout-brand__title" style={{ 
+                                color: '#2d3748',
+                                fontSize: '1.2rem',
+                                fontWeight: 700
+                            }}>
+                                {t('dashboard.hospitalName')}
+                            </div>
+                        </div>
+                    </Link>
+
+                    <nav
+                        className={`layout-nav ${menuOpen ? 'layout-nav--open' : ''}`}
+                        aria-label={navAriaLabel}
+                    >
+                        {user?.roles?.includes('Admin') || user?.roles?.includes('Doctor')
+                            ? adminNav
+                            : guestNav}
+                    </nav>
+
+                    <button 
+                        type="button"
+                        className="layout-nav__toggle"
+                        onClick={handleToggleMenu}
+                        aria-label={menuOpen ? closeMenuLabel : openMenuLabel}
+                        aria-expanded={menuOpen}
+                    >
+                        {menuOpen ? '✕' : '☰'}
+                    </button>
+
+                    <div className="layout-header__actions">
+                        {user ? (
+                            <>
+                                <div className="layout-user" aria-live="polite">
+                                    <span className="layout-user__avatar" aria-hidden="true">
+                                        👤
+                                    </span>
+                                    <div>
+                                        <div className="layout-user__name">
+                                            {user.firstName} {user.lastName}
+                                        </div>
+                                        <div className="layout-user__role">{roleLabel}</div>
+                                    </div>
+                                </div>
+                                <select
+                                    value={i18n.language}
+                                    onChange={(e) => changeLanguage(e.target.value)}
+                                    className="layout-lang-select"
+                                    aria-label={changeLanguageLabel}
+                                >
+                                    <option value="en">{t('common.english')}</option>
+                                    <option value="ar">{t('common.arabic')}</option>
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={logout}
+                                    className="layout-btn layout-btn--primary"
+                                >
+                                    {t('common.logout')}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <select
+                                    value={i18n.language}
+                                    onChange={(e) => changeLanguage(e.target.value)}
+                                    className="layout-lang-select"
+                                    aria-label={changeLanguageLabel}
+                                >
+                                    <option value="en">{t('common.english')}</option>
+                                    <option value="ar">{t('common.arabic')}</option>
+                                </select>
+                                <Link to="/login" className="layout-btn layout-btn--primary">
+                                    {t('common.login')}
+                                </Link>
+                                <Link to="/register" className="layout-btn layout-btn--outline">
+                                    {t('common.createAccount')}
+                                </Link>
+                            </>
+                        )}
                     </div>
-                </header>
-                <div>
-                    <Outlet />
                 </div>
+                </header>
+
+                <div 
+                className={`layout-nav__overlay ${menuOpen ? 'is-visible' : ''}`}
+                role="presentation"
+                    onClick={() => setMenuOpen(false)} 
+            />
+
+            <main className="layout-main">
+                    <Outlet />
             </main>
+
+            {user && <ChatbotWidget />}
         </div>
     );
 }
-
-
