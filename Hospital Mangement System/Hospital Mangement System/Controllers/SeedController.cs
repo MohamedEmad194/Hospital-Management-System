@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Hospital_Management_System.Data;
+using Hospital_Management_System.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hospital_Management_System.Controllers
@@ -13,19 +15,48 @@ namespace Hospital_Management_System.Controllers
     public class SeedController : ControllerBase
     {
         private readonly HospitalDbContext _context;
+        private readonly UserManager<User> _userManager;
         private readonly ILogger<SeedController> _logger;
 
-        public SeedController(HospitalDbContext context, ILogger<SeedController> logger)
+        public SeedController(
+            HospitalDbContext context,
+            UserManager<User> userManager,
+            ILogger<SeedController> logger)
         {
             _context = context;
+            _userManager = userManager;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Normalize doctor/patient emails to ASCII @hospital.com (fixes Arabic local-parts from old seed).
+        /// </summary>
+        [HttpPost("fix-login-emails")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> FixLoginEmails()
+        {
+            try
+            {
+                var result = await SeedData.FixLoginEmailsAsync(_context, _userManager);
+                return Ok(new
+                {
+                    message = "Login emails updated to English ASCII format (@hospital.com). Passwords remain hashed in AspNetUsers only.",
+                    doctorsUpdated = result.DoctorsUpdated,
+                    patientsUpdated = result.PatientsUpdated
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "FixLoginEmails failed");
+                return StatusCode(500, new { message = "Failed to fix login emails.", error = ex.Message });
+            }
         }
 
         /// <summary>
         /// Seed essential rooms and medicines data (can be called multiple times safely)
         /// </summary>
         [HttpPost("essential-data")]
-        [AllowAnonymous] // Allow anonymous to make it easy to seed
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> SeedEssentialData()
         {
             try
@@ -126,7 +157,7 @@ namespace Hospital_Management_System.Controllers
         /// Get current counts of rooms and medicines
         /// </summary>
         [HttpGet("counts")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> GetDataCounts()
         {
             try

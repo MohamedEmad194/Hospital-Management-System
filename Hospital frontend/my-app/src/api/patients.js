@@ -5,6 +5,14 @@ export async function fetchPatients() {
     return data;
 }
 
+export async function fetchPatientsPaged({ page = 1, pageSize = 20, search = '', signal } = {}) {
+    const { data } = await apiClient.get('/Patients/paged', {
+        params: { page, pageSize, search: search || undefined },
+        signal,
+    });
+    return data;
+}
+
 export async function fetchPatient(id) {
     const { data } = await apiClient.get(`/Patients/${id}`);
     return data;

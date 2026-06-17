@@ -7,6 +7,11 @@ using Hospital_Management_System.Data;
 using Hospital_Management_System.Models;
 using Hospital_Management_System.Services;
 using Serilog;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using Hospital_Management_System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,9 +43,20 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// Merge Database:* into ConnectionStrings:DefaultConnection (safe for passwords with % # ; etc.)
+ConnectionStringResolver.Apply(builder.Configuration);
+
 // Add services to the container
 builder.Services.AddDbContext<HospitalDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Instance = context.HttpContext.Request.Path;
+    };
+});
 
 // Add Identity services
 builder.Services.AddIdentity<User, IdentityRole>(options =>
@@ -61,7 +77,11 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 
 // Add JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+var secretKey = jwtSettings["SecretKey"];
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    throw new InvalidOperationException("JwtSettings:SecretKey is required. Set it via environment variables/app settings for the host.");
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -108,16 +128,31 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000", 
-                "https://localhost:3000",
-                "http://localhost:5230",
-                "https://localhost:7102"
-              )
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials()
-              .SetPreflightMaxAge(TimeSpan.FromSeconds(86400)); // Cache preflight for 24 hours
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? Array.Empty<string>();
+
+        if (allowedOrigins.Length == 0 && builder.Environment.IsDevelopment())
+        {
+            allowedOrigins = new[]
+            {
+                "http://localhost:3000",
+                "https://localhost:3000"
+            };
+        }
+
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .SetPreflightMaxAge(TimeSpan.FromSeconds(86400)); // Cache preflight for 24 hours
+        }
+        else
+        {
+            // If no origins are configured, don't allow cross-origin requests by default.
+            policy.DisallowCredentials();
+        }
     });
 });
 
@@ -152,6 +187,13 @@ if (useOpenAI && !string.IsNullOrEmpty(openAIKey))
 
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddHttpClient<IXRayAiService, XRayAiService>((sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var seconds = cfg.GetValue<int>("XRayAi:TimeoutSeconds", 600);
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(seconds, 60, 3600));
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -195,15 +237,62 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("auth-login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline - Swagger enabled for all environments
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (!app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hospital Management System API v1");
-    c.RoutePrefix = string.Empty; // Swagger UI at root - opens when visiting the site
-});
+    app.UseExceptionHandler(exceptionHandlerApp =>
+    {
+        exceptionHandlerApp.Run(async context =>
+        {
+            var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+            var exception = exceptionHandlerFeature?.Error;
+
+            Log.Error(exception, "Unhandled exception");
+
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/problem+json";
+
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "An unexpected error occurred.",
+                Type = "https://httpstatuses.com/500",
+                Instance = context.Request.Path
+            };
+
+            await context.Response.WriteAsJsonAsync(problem);
+        });
+    });
+}
+
+// Swagger: on when Swagger:Enabled=true (default true so publish shows UI). Set Swagger__Enabled=false on the host to disable.
+var swaggerEnabled = app.Configuration.GetValue<bool>("Swagger:Enabled", true);
+if (swaggerEnabled)
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hospital Management System API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 app.UseCors("AllowAll");
 // Disable HTTPS redirection in development to avoid SSL certificate issues
@@ -211,32 +300,116 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/", (HttpContext context) =>
+{
+    if (swaggerEnabled)
+    {
+        context.Response.Redirect("/swagger");
+        return Task.CompletedTask;
+    }
+
+    return context.Response.WriteAsJsonAsync(new
+    {
+        message = "Hospital Management System API is running"
+    });
+});
+
+app.MapGet("/index.html", (HttpContext context) =>
+{
+    if (swaggerEnabled)
+    {
+        context.Response.Redirect("/swagger");
+        return Task.CompletedTask;
+    }
+
+    return context.Response.WriteAsJsonAsync(new
+    {
+        message = "Hospital Management System API is running"
+    });
+});
+
 app.MapControllers();
 
-// Ensure database is created and seed data (configurable)
-await SeedDatabaseAsync(app);
+// First deploy / empty Identity DB: roles + default admin (only when AspNetUsers has zero rows).
+var provisionIfEmpty = app.Configuration.GetValue<bool>("SeedOptions:ProvisionIfNoUsers", true);
+if (provisionIfEmpty)
+{
+    await ProvisionDefaultIdentityAsync(app);
+}
+
+// Dev: migrate + optional sample data when RunOnStartup or EnableSampleData is on (sample flag alone is enough for local).
+// Production: only when RunOnStartup is true (explicit ops choice).
+var seedOnStartup = app.Configuration.GetValue<bool>("SeedOptions:RunOnStartup", false);
+var enableSampleData = app.Configuration.GetValue<bool>("SeedOptions:EnableSampleData", false);
+var shouldSeedOnStartup = app.Environment.IsDevelopment()
+    ? (seedOnStartup || enableSampleData)
+    : seedOnStartup;
+if (shouldSeedOnStartup)
+{
+    await SeedDatabaseAsync(app);
+}
 
 app.Run();
 
+async Task ProvisionDefaultIdentityAsync(WebApplication app)
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+
+        if (await context.Users.AnyAsync())
+            return;
+
+        Log.Information("ProvisionIfNoUsers: AspNetUsers is empty — applying migrations then roles + default admin.");
+
+        await context.Database.MigrateAsync();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("ProvisionDefaultIdentity");
+        await SeedData.SeedRolesAsync(roleManager);
+        await SeedData.SeedAdminUserAsync(userManager, configuration, logger, app.Environment.IsDevelopment());
+
+        Log.Warning("ProvisionIfNoUsers: admin@hospital.com if configured. Password is hashed in AspNetUsers only — set SeedOptions__InitialPasswords__Admin in user secrets.");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "ProvisionDefaultIdentityAsync failed; login may fail until Identity is seeded manually.");
+    }
+}
+
 async Task SeedDatabaseAsync(WebApplication app)
 {
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-    
-	try
-	{
-		context.Database.Migrate();
-	}
-	catch (Exception ex)
-	{
-		Log.Warning(ex, "Migration failed, using EnsureCreated instead");
-		context.Database.EnsureCreated();
-	}
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<HospitalDbContext>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+
+        try
+        {
+            context.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Migration failed, trying EnsureCreated instead");
+            try
+            {
+                context.Database.EnsureCreated();
+            }
+            catch (Exception ensureEx)
+            {
+                // Don't fail app startup if DB is unavailable/misconfigured on host
+                Log.Error(ensureEx, "EnsureCreated failed. Skipping database initialization during startup.");
+                return;
+            }
+        }
     
     var seedOptions = app.Configuration.GetSection("SeedOptions");
     var enableRoles = seedOptions.GetValue<bool>("EnableRoles", true);
@@ -250,16 +423,24 @@ async Task SeedDatabaseAsync(WebApplication app)
 
     if (enableAdmin)
     {
-        await SeedData.SeedAdminUserAsync(userManager);
+        var provisionLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedDatabase");
+        await SeedData.SeedAdminUserAsync(userManager, app.Configuration, provisionLogger, app.Environment.IsDevelopment());
     }
 
-    if (enableSampleData)
+        var enableUserProvisioning = seedOptions.GetValue<bool>("EnableUserProvisioning", false);
+
+        if (enableSampleData)
     {
         try
         {
             await SeedData.SeedSampleDataAsync(context);
-            // Automatically create user accounts for doctors, patients, and staff
-            await EnsureUsersForEntitiesAsync(userManager, context);
+                await SeedData.FixLoginEmailsAsync(context, userManager);
+                if (enableUserProvisioning)
+                {
+                    // Automatically create user accounts for doctors, patients, and staff (dev-only use)
+                    var provisionLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("EnsureUsersForEntities");
+                    await EnsureUsersForEntitiesAsync(userManager, context, app.Configuration, provisionLogger, app.Environment.IsDevelopment());
+                }
         }
         catch (Exception ex)
         {
@@ -287,18 +468,30 @@ async Task SeedDatabaseAsync(WebApplication app)
         }
     }
 
-    // Always try to ensure users for existing entities (even if sample data is disabled)
-    try
-    {
-        await EnsureUsersForEntitiesAsync(userManager, context);
+        if (enableUserProvisioning && app.Environment.IsDevelopment())
+        {
+            try
+            {
+                await SeedData.FixLoginEmailsAsync(context, userManager);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "FixLoginEmails skipped during startup");
+            }
+        }
     }
     catch (Exception ex)
     {
-        Log.Warning(ex, "Error ensuring users for entities during startup");
+        Log.Error(ex, "Startup database initialization failed. App will continue without seeding.");
     }
 }
 
-static async Task EnsureUsersForEntitiesAsync(UserManager<User> userManager, HospitalDbContext context)
+static async Task EnsureUsersForEntitiesAsync(
+    UserManager<User> userManager,
+    HospitalDbContext context,
+    IConfiguration configuration,
+    Microsoft.Extensions.Logging.ILogger logger,
+    bool isDevelopment)
 {
     int doctorsLinked = 0;
     int patientsLinked = 0;
@@ -330,7 +523,12 @@ static async Task EnsureUsersForEntitiesAsync(UserManager<User> userManager, Hos
                 CreatedAt = doctor.CreatedAt
             };
 
-            var result = await userManager.CreateAsync(user, "Doctor@123");
+            var doctorPassword = Hospital_Management_System.Configuration.SeedPasswordProvider.ResolveForProvisioning(
+                configuration, "Doctor", logger, allowGeneratedInDevelopment: true, isDevelopment);
+            if (string.IsNullOrEmpty(doctorPassword))
+                continue;
+
+            var result = await userManager.CreateAsync(user, doctorPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(user, "Doctor");
@@ -375,7 +573,12 @@ static async Task EnsureUsersForEntitiesAsync(UserManager<User> userManager, Hos
                 CreatedAt = patient.CreatedAt
             };
 
-            var result = await userManager.CreateAsync(user, "Patient@123");
+            var patientPassword = Hospital_Management_System.Configuration.SeedPasswordProvider.ResolveForProvisioning(
+                configuration, "Patient", logger, allowGeneratedInDevelopment: true, isDevelopment);
+            if (string.IsNullOrEmpty(patientPassword))
+                continue;
+
+            var result = await userManager.CreateAsync(user, patientPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(user, "Patient");
@@ -420,7 +623,12 @@ static async Task EnsureUsersForEntitiesAsync(UserManager<User> userManager, Hos
                 CreatedAt = staff.CreatedAt
             };
 
-            var result = await userManager.CreateAsync(user, "Staff@123");
+            var staffPassword = Hospital_Management_System.Configuration.SeedPasswordProvider.ResolveForProvisioning(
+                configuration, "Staff", logger, allowGeneratedInDevelopment: true, isDevelopment);
+            if (string.IsNullOrEmpty(staffPassword))
+                continue;
+
+            var result = await userManager.CreateAsync(user, staffPassword);
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(user, "Staff");

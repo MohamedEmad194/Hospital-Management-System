@@ -1,0 +1,20 @@
+Id,Name,Description,HeadOfDepartment,PhoneNumber,Location,IsActive
+1,Cardiology,"Specialized in diagnosing and treating cardiovascular diseases, heart catheterization, open-heart surgery and advanced cardiac care.",Dr. Ahmed Hassan,02-1234-5670,Second Floor - Main Building (A),True
+2,Neurology,"Specialized in neurological and brain disorders including epilepsy, stroke, chronic headache and nerve diseases.",Dr. Sarah Mohamed,02-1234-5671,Third Floor - Main Building (A),True
+3,Orthopedics,"Bone, joint and musculoskeletal care including joint replacement, fracture care and sports injuries.",Dr. Omar Ali,02-1234-5672,First Floor - Surgical Building (B),True
+4,Pediatrics,"Specialized medical care for infants and children, including vaccinations, growth monitoring and pediatric disease management.",Dr. Fatima Ahmed,02-1234-5673,Second Floor - Surgical Building (B),True
+5,Emergency,"24/7 emergency and critical care services for accidents, trauma and acute medical conditions.",Dr. Khaled Ibrahim,02-1234-5674,Ground Floor - Main Building (A),True
+6,Oncology,"Diagnosis and treatment of tumors and cancer including chemotherapy, radiotherapy and surgical oncology.",Dr. Mona Elsayed,02-1234-5675,Fourth Floor - Main Building (A),True
+7,Radiology,"Diagnostic imaging services including X-ray, MRI, CT scan and ultrasound.",Dr. Hesham Farouk,02-1234-5676,Basement - Main Building (A),True
+8,Dermatology,"Skin, hair and nail care including treatment of chronic skin conditions and medical cosmetic procedures.",Dr. Rania Mostafa,02-1234-5677,First Floor - Main Building (A),True
+9,Gastroenterology,"Digestive system care including endoscopy, hepatology, gallbladder and pancreatic disorders.",Dr. Mohamed Farid,02-1234-5678,Second Floor - Surgical Building (B),True
+10,Pulmonology,"Respiratory and lung care including asthma, bronchitis, chronic lung diseases and pulmonary function testing.",Dr. Amira Salah,02-1234-5679,Third Floor - Surgical Building (B),True
+11,Endocrinology,"Endocrine and hormonal disorders including diabetes, thyroid disease, obesity and growth disorders.",Dr. Tarek Nabil,02-1234-5680,Fourth Floor - Surgical Building (B),True
+12,Nephrology,"Kidney and urinary tract care including renal failure, kidney transplant and dialysis services.",Dr. Laila Kamel,02-1234-5681,Fifth Floor - Main Building (A),True
+13,Ophthalmology,"Eye and vision care including eye surgery, vision correction, cataract and glaucoma treatment.",Dr. Karim Shokry,02-1234-5682,First Floor - Medical Building (C),True
+14,ENT,"Ear, nose and throat care including hearing problems, sinusitis and laryngeal surgery.",Dr. Noha Samir,02-1234-5683,Second Floor - Medical Building (C),True
+15,Urology,"Urinary system and male reproductive care including kidney stones, prostate enlargement and urological surgery.",Dr. Wael Attia,02-1234-5684,Third Floor - Medical Building (C),True
+16,Gynecology,"Specialized women's healthcare including routine exams, childbirth and infertility treatment.",Dr. Reham Elzahraa,02-1234-5685,Fourth Floor - Medical Building (C),True
+17,Psychiatry,"Mental health care including depression, anxiety, psychiatric disorders and counseling services.",Dr. Samir Aboelfotouh,02-1234-5686,Fifth Floor - Medical Building (C),True
+18,Anesthesiology,"Anesthesia and pain management including surgical anesthesia, ICU support and chronic pain treatment.",Dr. Hany Abdelmoneim,02-1234-5687,First Floor - Surgical Building (D),True
+19,Pathology,"Medical laboratory and diagnostic services including blood, tissue, histopathology and comprehensive lab testing.",Dr. Magda Elsherbini,02-1234-5688,Basement - Surgical Building (B),True

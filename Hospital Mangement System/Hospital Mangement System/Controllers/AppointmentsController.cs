@@ -20,6 +20,26 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
+        /// Get appointments in a paged, searchable format.
+        /// </summary>
+        [HttpGet("paged")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
+        public async Task<ActionResult<PagedResultDto<AppointmentDto>>> GetPagedAppointments([FromQuery] PagedQuery query)
+        {
+            try
+            {
+                var result = await _appointmentService.GetPagedAppointmentsAsync(
+                    query.NormalizedPage, query.NormalizedPageSize, query.Search);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paged appointments");
+                return StatusCode(500, "An error occurred while retrieving appointments");
+            }
+        }
+
+        /// <summary>
         /// Get all appointments (filtered by role)
         /// </summary>
         [HttpGet]

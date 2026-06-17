@@ -29,6 +29,40 @@ namespace Hospital_Management_System.Services
             return _mapper.Map<IEnumerable<BillDto>>(bills);
         }
 
+        public async Task<PagedResultDto<BillDto>> GetPagedBillsAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Bills
+                .Include(b => b.Patient)
+                .Include(b => b.BillItems)
+                .Where(b => !b.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(b =>
+                    (b.BillNumber != null && b.BillNumber.ToLower().Contains(term)) ||
+                    (b.Status != null && b.Status.ToLower().Contains(term)) ||
+                    (b.Patient != null && (
+                        (b.Patient.FirstName != null && b.Patient.FirstName.ToLower().Contains(term)) ||
+                        (b.Patient.LastName != null && b.Patient.LastName.ToLower().Contains(term)))));
+            }
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(b => b.BillDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResultDto<BillDto>
+            {
+                Items = _mapper.Map<IEnumerable<BillDto>>(items),
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = total
+            };
+        }
+
         public async Task<BillDto?> GetBillByIdAsync(int id)
         {
             var bill = await _context.Bills

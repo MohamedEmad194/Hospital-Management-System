@@ -10,7 +10,6 @@ export default function Login() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('Admin'); // Admin, Doctor, Patient, Nurse
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showReset, setShowReset] = useState(false);
@@ -23,23 +22,23 @@ export default function Login() {
         setError('');
         setLoading(true);
         try {
-            await login(email, password, role);
+            await login(email, password);
             navigate('/');
         } catch (err) {
             // Simplified error handling with short messages
-            let errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+            let errorMessage = t('login.errors.invalidCredentials');
             let errorHint = '';
 
             // Network errors
             if (err?.message?.includes('Network Error') || err?.code === 'ECONNREFUSED') {
-                errorMessage = 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم';
+                errorMessage = t('login.errors.serverConnection');
                 setError(errorMessage);
                 return;
             }
 
             // SSL errors
             if (err?.message?.includes('ERR_CERT_AUTHORITY_INVALID')) {
-                errorMessage = 'خطأ في شهادة SSL';
+                errorMessage = t('login.errors.sslCertificate');
                 setError(errorMessage);
                 return;
             }
@@ -47,55 +46,28 @@ export default function Login() {
             // API response errors
             if (err?.response?.data) {
                 const responseData = err.response.data;
-                
-                // Check if it's a password error
-                if (responseData.details?.includes('Incorrect password') || 
-                    responseData.details?.includes('كلمة المرور غير صحيحة')) {
-                    errorMessage = 'كلمة المرور غير صحيحة';
-                    
-                    // Extract default password hint
-                    if (responseData.details?.includes('Default passwords')) {
-                        const passwordMatch = responseData.details.match(/Patient@123|Doctor@123|Admin@123|Staff@123/g);
-                        if (passwordMatch && passwordMatch.length > 0) {
-                            const rolePasswords = {
-                                'Patient': 'Patient@123',
-                                'Doctor': 'Doctor@123',
-                                'Admin': 'Admin@123',
-                                'Staff': 'Staff@123'
-                            };
-                            const selectedPassword = rolePasswords[role] || passwordMatch[0];
-                            errorHint = `كلمة المرور الافتراضية: ${selectedPassword}`;
-                        }
-                    }
+                const details = responseData.details || '';
+
+                if (details.includes('Incorrect email or password') ||
+                    details.includes('Incorrect password')) {
+                    errorMessage = t('login.errors.invalidCredentials');
+                } else if (details.includes('Account not found') ||
+                           details.includes('not provisioned')) {
+                    errorMessage = t('login.errors.accountNotFound');
+                    errorHint = t('login.errors.accountHint');
+                } else if (responseData.message?.includes('Invalid email or password')) {
+                    errorMessage = t('login.errors.invalidCredentials');
+                } else if (responseData.message) {
+                    errorMessage = responseData.message;
+                    if (details) errorHint = details;
+                } else if (responseData.title && responseData.errors) {
+                    const first = Object.values(responseData.errors).flat()[0];
+                    errorMessage = first || responseData.title;
                 }
-                // Check if email not found
-                else if (responseData.details?.includes('Email not found') || 
-                         responseData.details?.includes('البريد الإلكتروني غير موجود')) {
-                    errorMessage = 'البريد الإلكتروني غير موجود في النظام';
-                    errorHint = 'تأكد من البريد الإلكتروني أو قم بإنشاء حساب جديد';
-                }
-                // Check if role mismatch
-                else if (responseData.details?.includes('does not have role') || 
-                         responseData.details?.includes('لا يملك الدور')) {
-                    errorMessage = 'الدور المحدد غير صحيح';
-                    const userRoles = responseData.userRoles || [];
-                    if (userRoles.length > 0) {
-                        errorHint = `الحساب لديه الأدوار: ${userRoles.join(', ')}`;
-                    }
-                }
-                // Generic API error
-                else if (responseData.message) {
-                    // Simplify common messages
-                    if (responseData.message.includes('Invalid email or password')) {
-                        errorMessage = 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
-                    } else {
-                        errorMessage = responseData.message;
-                    }
-                }
-            } 
+            }
             // Generic error
             else if (err?.message) {
-                errorMessage = err.message.length > 50 ? 'حدث خطأ أثناء تسجيل الدخول' : err.message;
+                errorMessage = err.message.length > 50 ? t('login.errors.generic') : err.message;
             }
 
             // Set error with hint if available
@@ -113,15 +85,15 @@ export default function Login() {
         try {
             const targetEmail = resetEmail || email;
             if (!targetEmail) {
-                setResetStatus({ type: 'error', message: 'رجاءً أدخل البريد الإلكتروني لإرسال رابط إعادة التعيين.' });
+                setResetStatus({ type: 'error', message: t('login.passwordReset.emptyEmail') });
                 return;
             }
 
             await forgotPassword(targetEmail);
-            setResetStatus({ type: 'success', message: 'تم إرسال رابط إعادة التعيين إلى بريدك إذا كان الحساب موجوداً.' });
+            setResetStatus({ type: 'success', message: t('login.passwordReset.sent') });
         } catch (err) {
             console.error('Forgot password error:', err);
-            setResetStatus({ type: 'error', message: 'تعذر إرسال رابط إعادة التعيين. حاول لاحقاً.' });
+            setResetStatus({ type: 'error', message: t('login.passwordReset.failed') });
         } finally {
             setResetLoading(false);
         }
@@ -314,51 +286,7 @@ export default function Login() {
                     </div>
                 ) : null}
                 <div style={{ marginBottom: 16 }}>
-                    <label htmlFor="role" style={{ 
-                        display: 'block', 
-                        marginBottom: 8, 
-                        color: '#4a5568',
-                        fontSize: '13px',
-                        fontWeight: 600
-                    }}>
-                        {t('login.role')}
-                    </label>
-                    <select 
-                        id="role" 
-                        value={role} 
-                        onChange={(e) => setRole(e.target.value)} 
-                        required 
-                        style={{ 
-                            width: '100%', 
-                            padding: '12px 16px', 
-                            borderRadius: 14, 
-                            border: '2px solid #e2e8f0', 
-                            background: 'white', 
-                            fontSize: 14,
-                            fontWeight: 500,
-                            color: '#2d3748',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            outline: 'none',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                        }}
-                        onFocus={(e) => {
-                            e.target.style.borderColor = '#667eea';
-                            e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.15)';
-                        }}
-                        onBlur={(e) => {
-                            e.target.style.borderColor = '#e2e8f0';
-                            e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
-                        }}
-                    >
-                        <option value="Admin">{t('login.roles.admin')}</option>
-                        <option value="Doctor">{t('login.roles.doctor')}</option>
-                        <option value="Patient">{t('login.roles.patient')}</option>
-                        <option value="Nurse">{t('login.roles.nurse')}</option>
-                    </select>
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                    <label htmlFor="email" style={{ 
+                    <label htmlFor="email" style={{
                         display: 'block', 
                         marginBottom: 8, 
                         color: '#4a5568',
@@ -460,7 +388,7 @@ export default function Login() {
                             onMouseEnter={(e) => e.target.style.color = '#764ba2'}
                             onMouseLeave={(e) => e.target.style.color = '#667eea'}
                         >
-                            نسيت كلمة المرور؟
+                            {t('login.passwordReset.forgot')}
                         </button>
                         {resetStatus.message && (
                             <span style={{ 
@@ -489,12 +417,12 @@ export default function Login() {
                             color: '#667eea',
                             fontSize: 16
                         }}>
-                            إعادة تعيين كلمة المرور
+                            {t('login.passwordReset.title')}
                         </div>
                         <div style={{ display: 'grid', gap: 12 }}>
                             <input
                                 type="email"
-                                placeholder="أدخل بريدك الإلكتروني"
+                                placeholder={t('login.passwordReset.placeholder')}
                                 value={resetEmail || email}
                                 onChange={(e) => setResetEmail(e.target.value)}
                                 style={{ 
@@ -546,7 +474,7 @@ export default function Login() {
                                     }
                                 }}
                             >
-                                {resetLoading ? 'جارٍ الإرسال...' : 'أرسل رابط إعادة التعيين'}
+                                {resetLoading ? t('login.passwordReset.sending') : t('login.passwordReset.send')}
                             </button>
                         </div>
                     </div>

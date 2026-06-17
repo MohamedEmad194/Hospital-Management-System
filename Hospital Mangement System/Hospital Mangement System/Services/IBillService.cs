@@ -5,6 +5,7 @@ namespace Hospital_Management_System.Services
     public interface IBillService
     {
         Task<IEnumerable<BillDto>> GetAllBillsAsync();
+        Task<PagedResultDto<BillDto>> GetPagedBillsAsync(int page, int pageSize, string? search);
         Task<BillDto?> GetBillByIdAsync(int id);
         Task<IEnumerable<BillDto>> GetBillsByPatientAsync(int patientId);
         Task<BillDto?> CreateBillAsync(CreateBillDto createBillDto);

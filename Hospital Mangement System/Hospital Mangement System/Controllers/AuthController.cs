@@ -8,7 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Hospital_Management_System.DTOs;
 using Hospital_Management_System.Models;
 using Hospital_Management_System.Data;
+using Hospital_Management_System.Configuration;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Data.SqlClient;
 
 namespace Hospital_Management_System.Controllers
 {
@@ -16,24 +20,28 @@ namespace Hospital_Management_System.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly HospitalDbContext _context;
+        private readonly IHostEnvironment _hostEnvironment;
 
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
             IConfiguration configuration,
             ILogger<AuthController> logger,
-            HospitalDbContext context)
+            HospitalDbContext context,
+            IHostEnvironment hostEnvironment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _logger = logger;
             _context = context;
+            _hostEnvironment = hostEnvironment;
         }
 
         /// <summary>
@@ -96,6 +104,7 @@ namespace Hospital_Management_System.Controllers
         /// Login user
         /// </summary>
         [HttpPost("login")]
+        [EnableRateLimiting("auth-login")]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
         {
             try
@@ -105,130 +114,21 @@ namespace Hospital_Management_System.Controllers
 
                 // Check if user exists
                 var user = await _userManager.FindByEmailAsync(loginDto.Email);
+
+                if (user == null)
+                {
+                    await TryProvisionUserFromEntityAsync(loginDto.Email, loginDto.Role);
+                    user = await _userManager.FindByEmailAsync(loginDto.Email);
+                }
                 
                 if (user == null)
                 {
-                    // Try to create user account if entity exists but user doesn't
-                    var requestedRole = loginDto.Role?.Trim();
-                    if (requestedRole == "Nurse") requestedRole = "Staff";
-
-                    if (requestedRole == "Doctor")
+                    _logger.LogWarning("Login attempt with non-existent email: {Email}, Role: {Role}", loginDto.Email, loginDto.Role);
+                    return Unauthorized(new
                     {
-                        var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Email == loginDto.Email && !d.IsDeleted);
-                        if (doctor != null)
-                        {
-                            user = new User
-                            {
-                                UserName = doctor.Email,
-                                Email = doctor.Email,
-                                FirstName = doctor.FirstName,
-                                LastName = doctor.LastName,
-                                NationalId = doctor.NationalId,
-                                PhoneNumber = doctor.PhoneNumber,
-                                DateOfBirth = doctor.DateOfBirth,
-                                Gender = doctor.Gender,
-                                IsActive = doctor.IsActive,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            var createResult = await _userManager.CreateAsync(user, loginDto.Password);
-                            if (createResult.Succeeded)
-                            {
-                                await _userManager.AddToRoleAsync(user, "Doctor");
-                                doctor.UserId = user.Id;
-                                await _context.SaveChangesAsync();
-                                _logger.LogInformation("Auto-created user account for doctor: {Email}", loginDto.Email);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Failed to create user for doctor {Email}: {Errors}", 
-                                    loginDto.Email, string.Join(", ", createResult.Errors.Select(e => e.Description)));
-                            }
-                        }
-                    }
-                    else if (requestedRole == "Patient")
-                    {
-                        var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == loginDto.Email && !p.IsDeleted);
-                        if (patient != null)
-                        {
-                            user = new User
-                            {
-                                UserName = patient.Email,
-                                Email = patient.Email,
-                                FirstName = patient.FirstName,
-                                LastName = patient.LastName,
-                                NationalId = patient.NationalId,
-                                PhoneNumber = patient.PhoneNumber,
-                                DateOfBirth = patient.DateOfBirth,
-                                Gender = patient.Gender,
-                                IsActive = patient.IsActive,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            var createResult = await _userManager.CreateAsync(user, loginDto.Password);
-                            if (createResult.Succeeded)
-                            {
-                                await _userManager.AddToRoleAsync(user, "Patient");
-                                patient.UserId = user.Id;
-                                await _context.SaveChangesAsync();
-                                _logger.LogInformation("Auto-created user account for patient: {Email}", loginDto.Email);
-                            }
-                        }
-                    }
-                    else if (requestedRole == "Staff")
-                    {
-                        var staff = await _context.Staff.FirstOrDefaultAsync(s => s.Email == loginDto.Email && !s.IsDeleted);
-                        if (staff != null)
-                        {
-                            user = new User
-                            {
-                                UserName = staff.Email,
-                                Email = staff.Email,
-                                FirstName = staff.FirstName,
-                                LastName = staff.LastName,
-                                NationalId = staff.NationalId,
-                                PhoneNumber = staff.PhoneNumber,
-                                DateOfBirth = staff.DateOfBirth,
-                                Gender = staff.Gender,
-                                IsActive = staff.IsActive,
-                                CreatedAt = DateTime.UtcNow
-                            };
-                            var createResult = await _userManager.CreateAsync(user, loginDto.Password);
-                            if (createResult.Succeeded)
-                            {
-                                await _userManager.AddToRoleAsync(user, "Staff");
-                                await _userManager.AddToRoleAsync(user, "Nurse");
-                                staff.UserId = user.Id;
-                                await _context.SaveChangesAsync();
-                                _logger.LogInformation("Auto-created user account for staff: {Email}", loginDto.Email);
-                            }
-                        }
-                    }
-
-                    // If still null, return error with helpful message
-                    if (user == null)
-                    {
-                        _logger.LogWarning("Login attempt with non-existent email: {Email}, Role: {Role}", loginDto.Email, loginDto.Role);
-                        
-                        // Check if email exists in any entity
-                        var doctorExists = await _context.Doctors.AnyAsync(d => d.Email == loginDto.Email && !d.IsDeleted);
-                        var patientExists = await _context.Patients.AnyAsync(p => p.Email == loginDto.Email && !p.IsDeleted);
-                        var staffExists = await _context.Staff.AnyAsync(s => s.Email == loginDto.Email && !s.IsDeleted);
-                        
-                        string details = "Email not found in system. ";
-                        if (doctorExists || patientExists || staffExists)
-                        {
-                            details += "Entity exists but user account not created. Please call POST /api/TestCredentials/ensure-users first.";
-                        }
-                        else
-                        {
-                            details += "Please ensure the email exists in Doctors, Patients, or Staff records.";
-                        }
-                        
-                        return Unauthorized(new { 
-                            message = "Invalid email or password", 
-                            details = details,
-                            hint = "Default passwords: Admin@123, Doctor@123, Patient@123, Staff@123"
-                        });
-                    }
+                        message = "Invalid email or password",
+                        details = "Account not found or not provisioned. Please contact an administrator."
+                    });
                 }
 
                 if (!user.IsActive)
@@ -242,38 +142,40 @@ namespace Hospital_Management_System.Controllers
                 if (!result.Succeeded)
                 {
                     _logger.LogWarning("Invalid password for user: {Email}", loginDto.Email);
-                    
-                    // Get user roles to help with debugging
-                    var userRoles = await _userManager.GetRolesAsync(user);
-                    
+
                     return Unauthorized(new { 
                         message = "Invalid email or password", 
-                        details = $"Incorrect password for user {loginDto.Email}. Default passwords: Admin@123, Doctor@123, Patient@123, Staff@123",
-                        userRoles = userRoles,
-                        hint = $"User exists and has roles: {string.Join(", ", userRoles)}"
+                        details = "Incorrect email or password"
                     });
                 }
 
-                // Verify user has the selected role
+                // Resolve role from request or fall back to the user's actual roles.
+                // The JWT below includes ALL of the user's roles, so permissions are unchanged.
                 var userRoles2 = await _userManager.GetRolesAsync(user);
                 var requestedRole2 = loginDto.Role?.Trim();
-                
+
                 // Map "Nurse" to "Staff" for backward compatibility
                 if (requestedRole2 == "Nurse")
                     requestedRole2 = "Staff";
 
                 if (string.IsNullOrEmpty(requestedRole2))
                 {
-                    return BadRequest(new { message = "Role is required", details = "Please select a role (Admin, Doctor, Patient, or Nurse)" });
+                    // No role provided: pick one of the user's roles (preferring higher-privilege ones)
+                    // so entity-linking logic below still runs correctly.
+                    requestedRole2 = userRoles2.Contains("Admin") ? "Admin"
+                                   : userRoles2.Contains("Doctor") ? "Doctor"
+                                   : userRoles2.Contains("Staff") ? "Staff"
+                                   : userRoles2.Contains("Nurse") ? "Staff"
+                                   : userRoles2.Contains("Patient") ? "Patient"
+                                   : userRoles2.FirstOrDefault() ?? string.Empty;
                 }
-
-                if (!userRoles2.Contains(requestedRole2))
+                else if (!userRoles2.Contains(requestedRole2))
                 {
-                    _logger.LogWarning("User {Email} attempted login with role {RequestedRole} but has roles: {UserRoles}", 
+                    _logger.LogWarning("User {Email} attempted login with role {RequestedRole} but has roles: {UserRoles}",
                         loginDto.Email, requestedRole2, string.Join(", ", userRoles2));
-                    return Unauthorized(new { 
-                        message = $"User does not have the {loginDto.Role} role", 
-                        details = $"Available roles for this user: {string.Join(", ", userRoles2)}. Please select the correct role.",
+                    return Unauthorized(new {
+                        message = $"User does not have the {loginDto.Role} role",
+                        details = $"Available roles for this user: {string.Join(", ", userRoles2)}.",
                         availableRoles = userRoles2,
                         requestedRole = loginDto.Role
                     });
@@ -346,8 +248,36 @@ namespace Hospital_Management_System.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during user login");
-                return StatusCode(500, new { message = "An error occurred during login", error = ex.Message });
+                var traceId = HttpContext.TraceIdentifier;
+                _logger.LogError(ex, "Error during user login for {Email}. TraceId: {TraceId}", loginDto?.Email, traceId);
+
+                if (_hostEnvironment.IsDevelopment())
+                {
+                    return StatusCode(500, new { message = "An error occurred during login", error = ex.Message, traceId });
+                }
+
+                var includeDetail = _configuration.GetValue<bool>("Auth:ExposeLoginErrorsToClient", false);
+                if (includeDetail)
+                {
+                    return StatusCode(500, new { message = "An error occurred during login", details = ex.Message, traceId });
+                }
+
+                if (FindSqlException(ex) is { } sqlEx)
+                {
+                    return StatusCode(503, new
+                    {
+                        message = "Login unavailable: database connection failed.",
+                        details = $"SQL error {sqlEx.Number}. Set ConnectionStrings__DefaultConnection on the host (runasp.net Application Settings). Open GET /api/Health/database to verify.",
+                        traceId
+                    });
+                }
+
+                return StatusCode(500, new
+                {
+                    message = "An error occurred during login",
+                    details = "Service temporarily unavailable. Check server logs for this traceId.",
+                    traceId
+                });
             }
         }
 
@@ -623,6 +553,162 @@ namespace Hospital_Management_System.Controllers
                 PatientId = patient?.Id,
                 StaffId = staff?.Id
             };
+        }
+
+        /// <summary>
+        /// Development: create Identity user for an existing doctor/patient/staff row (hashed password from config).
+        /// </summary>
+        private async Task TryProvisionUserFromEntityAsync(string email, string? role)
+        {
+            if (!_hostEnvironment.IsDevelopment())
+                return;
+            if (!_configuration.GetValue<bool>("SeedOptions:EnableUserProvisioning", false))
+                return;
+
+            var normalizedRole = role?.Trim();
+            if (normalizedRole == "Nurse")
+                normalizedRole = "Staff";
+
+            // If no role was provided, auto-detect entity type by searching the email
+            // in Doctors → Patients → Staff (in that order).
+            if (string.IsNullOrEmpty(normalizedRole))
+            {
+                if (await _context.Doctors.AnyAsync(d => d.Email == email && !d.IsDeleted && d.UserId == null))
+                    normalizedRole = "Doctor";
+                else if (await _context.Patients.AnyAsync(p => p.Email == email && !p.IsDeleted && p.UserId == null))
+                    normalizedRole = "Patient";
+                else if (await _context.Staff.AnyAsync(s => s.Email == email && !s.IsDeleted && s.UserId == null))
+                    normalizedRole = "Staff";
+                else
+                    return;
+            }
+
+            string? passwordRole = normalizedRole switch
+            {
+                "Admin" => "Admin",
+                "Doctor" => "Doctor",
+                "Patient" => "Patient",
+                "Staff" => "Staff",
+                _ => null
+            };
+            if (passwordRole is null)
+                return;
+
+            var password = SeedPasswordProvider.ResolveForProvisioning(
+                _configuration, passwordRole, _logger, allowGeneratedInDevelopment: true, isDevelopment: true);
+            if (string.IsNullOrEmpty(password))
+                return;
+
+            User? newUser = null;
+            string identityRole = passwordRole;
+
+            if (normalizedRole == "Doctor")
+            {
+                var doctor = await _context.Doctors
+                    .FirstOrDefaultAsync(d => d.Email == email && !d.IsDeleted && d.UserId == null);
+                if (doctor == null) return;
+
+                newUser = new User
+                {
+                    UserName = doctor.Email,
+                    Email = doctor.Email,
+                    FirstName = doctor.FirstName,
+                    LastName = doctor.LastName,
+                    NationalId = doctor.NationalId,
+                    PhoneNumber = doctor.PhoneNumber,
+                    IsActive = doctor.IsActive,
+                    CreatedAt = doctor.CreatedAt
+                };
+                identityRole = "Doctor";
+            }
+            else if (normalizedRole == "Patient")
+            {
+                var patient = await _context.Patients
+                    .FirstOrDefaultAsync(p => p.Email == email && !p.IsDeleted && p.UserId == null);
+                if (patient == null) return;
+
+                newUser = new User
+                {
+                    UserName = patient.Email,
+                    Email = patient.Email,
+                    FirstName = patient.FirstName,
+                    LastName = patient.LastName,
+                    NationalId = patient.NationalId,
+                    PhoneNumber = patient.PhoneNumber,
+                    IsActive = patient.IsActive,
+                    CreatedAt = patient.CreatedAt
+                };
+                identityRole = "Patient";
+            }
+            else if (normalizedRole == "Staff")
+            {
+                var staff = await _context.Staff
+                    .FirstOrDefaultAsync(s => s.Email == email && !s.IsDeleted && s.UserId == null);
+                if (staff == null) return;
+
+                newUser = new User
+                {
+                    UserName = staff.Email,
+                    Email = staff.Email,
+                    FirstName = staff.FirstName,
+                    LastName = staff.LastName,
+                    NationalId = staff.NationalId,
+                    PhoneNumber = staff.PhoneNumber,
+                    IsActive = staff.IsActive,
+                    CreatedAt = staff.CreatedAt
+                };
+                identityRole = "Staff";
+            }
+            else if (normalizedRole == "Admin" && email.Equals("admin@hospital.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return; // admin is seeded separately
+            }
+            else
+            {
+                return;
+            }
+
+            var result = await _userManager.CreateAsync(newUser, password);
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("Auto-provision failed for {Email}: {Errors}",
+                    email, string.Join("; ", result.Errors.Select(e => e.Description)));
+                return;
+            }
+
+            await _userManager.AddToRoleAsync(newUser, identityRole);
+            if (identityRole == "Staff")
+                await _userManager.AddToRoleAsync(newUser, "Nurse");
+
+            if (normalizedRole == "Doctor")
+            {
+                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Email == email && !d.IsDeleted);
+                if (doctor != null) doctor.UserId = newUser.Id;
+            }
+            else if (normalizedRole == "Patient")
+            {
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == email && !p.IsDeleted);
+                if (patient != null) patient.UserId = newUser.Id;
+            }
+            else if (normalizedRole == "Staff")
+            {
+                var staff = await _context.Staff.FirstOrDefaultAsync(s => s.Email == email && !s.IsDeleted);
+                if (staff != null) staff.UserId = newUser.Id;
+            }
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Auto-provisioned Identity user for {Email} ({Role})", email, identityRole);
+        }
+
+        private static SqlException? FindSqlException(Exception ex)
+        {
+            for (var e = ex; e != null; e = e.InnerException!)
+            {
+                if (e is SqlException se)
+                    return se;
+            }
+
+            return null;
         }
     }
 

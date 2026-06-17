@@ -24,26 +24,38 @@ namespace Hospital_Management_System.Services
                 .OrderBy(d => d.Name)
                 .ToListAsync();
 
-            var departmentDtos = new List<DepartmentDto>();
+            if (departments.Count == 0)
+                return Enumerable.Empty<DepartmentDto>();
 
-            foreach (var department in departments)
+            var departmentIds = departments.Select(d => d.Id).ToList();
+
+            // Batch all counts into 3 grouped queries instead of N×3 individual round-trips
+            var doctorCounts = await _context.Doctors
+                .Where(d => departmentIds.Contains(d.DepartmentId) && !d.IsDeleted)
+                .GroupBy(d => d.DepartmentId)
+                .Select(g => new { DepartmentId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DepartmentId, x => x.Count);
+
+            var roomCounts = await _context.Rooms
+                .Where(r => departmentIds.Contains(r.DepartmentId) && !r.IsDeleted)
+                .GroupBy(r => r.DepartmentId)
+                .Select(g => new { DepartmentId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DepartmentId, x => x.Count);
+
+            var staffCounts = await _context.Staff
+                .Where(s => departmentIds.Contains(s.DepartmentId) && !s.IsDeleted)
+                .GroupBy(s => s.DepartmentId)
+                .Select(g => new { DepartmentId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.DepartmentId, x => x.Count);
+
+            return departments.Select(department =>
             {
                 var dto = _mapper.Map<DepartmentDto>(department);
-                
-                // Get counts
-                dto.DoctorCount = await _context.Doctors
-                    .CountAsync(d => d.DepartmentId == department.Id && !d.IsDeleted);
-                
-                dto.RoomCount = await _context.Rooms
-                    .CountAsync(r => r.DepartmentId == department.Id && !r.IsDeleted);
-                
-                dto.StaffCount = await _context.Staff
-                    .CountAsync(s => s.DepartmentId == department.Id && !s.IsDeleted);
-
-                departmentDtos.Add(dto);
-            }
-
-            return departmentDtos;
+                dto.DoctorCount = doctorCounts.TryGetValue(department.Id, out var dc) ? dc : 0;
+                dto.RoomCount = roomCounts.TryGetValue(department.Id, out var rc) ? rc : 0;
+                dto.StaffCount = staffCounts.TryGetValue(department.Id, out var sc) ? sc : 0;
+                return dto;
+            }).ToList();
         }
 
         public async Task<DepartmentDto?> GetDepartmentByIdAsync(int id)

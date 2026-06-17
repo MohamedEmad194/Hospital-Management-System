@@ -5,6 +5,7 @@ namespace Hospital_Management_System.Services
     public interface IAppointmentService
     {
         Task<IEnumerable<AppointmentDto>> GetAllAppointmentsAsync();
+        Task<PagedResultDto<AppointmentDto>> GetPagedAppointmentsAsync(int page, int pageSize, string? search);
         Task<AppointmentDto?> GetAppointmentByIdAsync(int id);
         Task<IEnumerable<AppointmentDto>> GetAppointmentsByPatientAsync(int patientId);
         Task<IEnumerable<AppointmentDto>> GetAppointmentsByDoctorAsync(int doctorId);

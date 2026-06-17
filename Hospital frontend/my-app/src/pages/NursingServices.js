@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { fetchNursingUnits, searchNursingUnits } from '../api/nursingUnits';
+import { fetchNursingUnits } from '../api/nursingUnits';
 import apiClient from '../api/client';
 
 export default function NursingServices() {

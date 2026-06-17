@@ -39,6 +39,26 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
+        /// Get patients in a paged, searchable format.
+        /// </summary>
+        [HttpGet("paged")]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
+        public async Task<ActionResult<PagedResultDto<PatientDto>>> GetPagedPatients([FromQuery] PagedQuery query)
+        {
+            try
+            {
+                var result = await _patientService.GetPagedPatientsAsync(
+                    query.NormalizedPage, query.NormalizedPageSize, query.Search);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paged patients");
+                return StatusCode(500, "An error occurred while retrieving patients");
+            }
+        }
+
+        /// <summary>
         /// Get patient by ID (filtered by role)
         /// </summary>
         [HttpGet("{id}")]

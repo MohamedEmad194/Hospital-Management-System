@@ -62,7 +62,7 @@ export default function AddAppointment() {
                 setDoctors(await fetchDoctors()); 
             } catch (err) {
                 console.warn('Could not fetch doctors list:', err);
-                setError(prev => prev ? prev + ' ' : '' + 'تعذر تحميل قائمة الأطباء.');
+                setError(prev => (prev ? `${prev} ` : '') + 'تعذر تحميل قائمة الأطباء.');
             }
             
             try { 

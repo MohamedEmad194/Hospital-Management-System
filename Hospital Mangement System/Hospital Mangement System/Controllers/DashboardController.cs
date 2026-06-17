@@ -192,6 +192,97 @@ namespace Hospital_Management_System.Controllers
                 return StatusCode(500, "An error occurred while retrieving department statistics");
             }
         }
+
+        /// <summary>
+        /// Extended public overview powering the new dashboard widgets
+        /// (revenue snapshot, today's activity, top departments, status breakdown, last 6 months trend).
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("overview")]
+        public async Task<ActionResult<DashboardOverviewDto>> GetOverview()
+        {
+            try
+            {
+                if (!await _context.Database.CanConnectAsync())
+                {
+                    return StatusCode(503, new { message = "Database is not available" });
+                }
+
+                var today = DateTime.UtcNow.Date;
+                var monthStart = new DateTime(today.Year, today.Month, 1);
+
+                var paidBills = _context.Bills.Where(b => !b.IsDeleted && b.Status == "Paid");
+                var unpaidBills = _context.Bills.Where(b => !b.IsDeleted && b.Status != "Paid");
+
+                var overview = new DashboardOverviewDto
+                {
+                    Revenue = new RevenueSnapshotDto
+                    {
+                        Total = await paidBills.SumAsync(b => (decimal?)b.PaidAmount) ?? 0m,
+                        Pending = await unpaidBills.SumAsync(b => (decimal?)b.RemainingAmount) ?? 0m,
+                        ThisMonth = await paidBills
+                            .Where(b => b.PaymentDate.HasValue && b.PaymentDate.Value >= monthStart)
+                            .SumAsync(b => (decimal?)b.PaidAmount) ?? 0m
+                    },
+                    Today = new TodaySnapshotDto
+                    {
+                        Appointments = await _context.Appointments
+                            .CountAsync(a => !a.IsDeleted && a.AppointmentDate == today),
+                        NewPatients = await _context.Patients
+                            .CountAsync(p => !p.IsDeleted && p.CreatedAt >= today),
+                        BillsIssued = await _context.Bills
+                            .CountAsync(b => !b.IsDeleted && b.BillDate == today)
+                    },
+                    AppointmentsByStatus = await _context.Appointments
+                        .Where(a => !a.IsDeleted)
+                        .GroupBy(a => a.Status)
+                        .Select(g => new AppointmentStatusDto { Status = g.Key, Count = g.Count() })
+                        .ToListAsync(),
+                    TopDepartments = await _context.Departments
+                        .Where(d => !d.IsDeleted)
+                        .Select(d => new DepartmentSummaryDto
+                        {
+                            DepartmentName = d.Name,
+                            DoctorCount = _context.Doctors.Count(doc => doc.DepartmentId == d.Id && !doc.IsDeleted),
+                            AppointmentCount = _context.Appointments
+                                .Count(a => a.Doctor.DepartmentId == d.Id && !a.IsDeleted)
+                        })
+                        .OrderByDescending(d => d.AppointmentCount)
+                        .Take(6)
+                        .ToListAsync()
+                };
+
+                // Last 6 months appointment trend
+                var sixMonthsAgo = monthStart.AddMonths(-5);
+                var trendRaw = await _context.Appointments
+                    .Where(a => !a.IsDeleted && a.AppointmentDate >= sixMonthsAgo)
+                    .GroupBy(a => new { a.AppointmentDate.Year, a.AppointmentDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                    .ToListAsync();
+
+                var trend = new List<MonthlyPointDto>();
+                for (int i = 0; i < 6; i++)
+                {
+                    var d = sixMonthsAgo.AddMonths(i);
+                    var match = trendRaw.FirstOrDefault(t => t.Year == d.Year && t.Month == d.Month);
+                    trend.Add(new MonthlyPointDto
+                    {
+                        Label = d.ToString("MMM yy"),
+                        Year = d.Year,
+                        Month = d.Month,
+                        Count = match?.Count ?? 0
+                    });
+                }
+                overview.MonthlyAppointments = trend;
+
+                return Ok(overview);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving dashboard overview");
+                return StatusCode(500, new { message = "An error occurred while retrieving the dashboard overview", error = ex.Message });
+            }
+        }
     }
 
     public class DashboardStatsDto
@@ -240,5 +331,43 @@ namespace Hospital_Management_System.Controllers
         public int DoctorCount { get; set; }
         public int RoomCount { get; set; }
         public int AppointmentCount { get; set; }
+    }
+
+    public class DashboardOverviewDto
+    {
+        public RevenueSnapshotDto Revenue { get; set; } = new();
+        public TodaySnapshotDto Today { get; set; } = new();
+        public List<AppointmentStatusDto> AppointmentsByStatus { get; set; } = new();
+        public List<DepartmentSummaryDto> TopDepartments { get; set; } = new();
+        public List<MonthlyPointDto> MonthlyAppointments { get; set; } = new();
+    }
+
+    public class RevenueSnapshotDto
+    {
+        public decimal Total { get; set; }
+        public decimal Pending { get; set; }
+        public decimal ThisMonth { get; set; }
+    }
+
+    public class TodaySnapshotDto
+    {
+        public int Appointments { get; set; }
+        public int NewPatients { get; set; }
+        public int BillsIssued { get; set; }
+    }
+
+    public class DepartmentSummaryDto
+    {
+        public string DepartmentName { get; set; } = string.Empty;
+        public int DoctorCount { get; set; }
+        public int AppointmentCount { get; set; }
+    }
+
+    public class MonthlyPointDto
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int Count { get; set; }
     }
 }

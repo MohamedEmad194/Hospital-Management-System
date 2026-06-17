@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // For development, use HTTP to avoid SSL certificate issues
 // In production, this should be HTTPS
-const RAW_API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || '').trim();
+const RAW_API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL || '').trim();
 
 function normalizeBaseUrl(value) {
     // If empty, fallback to localhost default with HTTP to avoid SSL issues
@@ -34,7 +34,7 @@ function normalizeBaseUrl(value) {
     }
 }
 
-const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
+export const API_BASE_URL = normalizeBaseUrl(RAW_API_BASE_URL);
 
 // Debug environment + resolved base URL
 console.log('🔧 API_BASE_URL set to:', API_BASE_URL);
@@ -54,8 +54,8 @@ export const apiClient = axios.create({
     headers: {
         'Content-Type': 'application/json'
     },
-    timeout: 10000, // 10 seconds timeout
-    withCredentials: true // Enable credentials for CORS
+    timeout: 30000, // 30 seconds — remote DB (databaseasp.net) can be slow on cold queries
+    withCredentials: false
 });
 
 // Debug: Log the API base URL
@@ -77,63 +77,42 @@ apiClient.interceptors.response.use(
         return response;
     },
     (error) => {
-        // Log detailed error information for debugging
-        console.error('❌ API Error Details:', {
-            status: error?.response?.status,
-            statusText: error?.response?.statusText,
-            data: error?.response?.data,
-            message: error?.message,
-            url: error?.config?.url,
-            baseURL: error?.config?.baseURL,
-            fullURL: error?.config?.baseURL + error?.config?.url
-        });
-        
-        // Also log data as JSON for better readability
-        if (error?.response?.data) {
-            console.error('❌ Error Data (JSON):', JSON.stringify(error.response.data, null, 2));
+        const url = error?.config?.url || '';
+        const isAuthAttempt =
+            url.includes('/auth/login') ||
+            url.includes('/auth/register');
+        const status = error?.response?.status;
+
+        // Failed login/register is expected — don't spam the console
+        if (!(isAuthAttempt && (status === 401 || status === 400))) {
+            // Flat one-line summary so you can read it without expanding an Object
+            const dataPreview = error?.response?.data
+                ? (typeof error.response.data === 'string'
+                    ? error.response.data.slice(0, 200)
+                    : JSON.stringify(error.response.data).slice(0, 200))
+                : '(no body)';
+            console.error(
+                `❌ API ${error?.config?.method?.toUpperCase() || 'REQ'} ${url} → ${status || error?.code || 'ERR'}: ${error?.message} | data: ${dataPreview}`
+            );
         }
 
-        // Check if it's a connection error
-        if (error?.message?.includes('ERR_CONNECTION_REFUSED') || 
+        if (error?.message?.includes('ERR_CONNECTION_REFUSED') ||
             error?.message?.includes('Network Error') ||
             error?.code === 'ECONNREFUSED') {
             console.error('🚨 Connection refused! Check if backend is running on:', error?.config?.baseURL);
         }
 
-        if (error?.response?.status === 401) {
-            // 401 = Unauthorized (not authenticated or token expired)
-            console.warn('🔐 Authentication error (401):', {
-                status: error?.response?.status,
-                message: error?.response?.data?.message || error?.message,
-                path: window.location.pathname
-            });
-            
-            // Don't redirect if already on login page (avoid redirect loop)
-            if (window.location.pathname !== '/login') {
-                // Clear invalid/expired token
+        if (status === 401) {
+            if (!isAuthAttempt && window.location.pathname !== '/login') {
                 localStorage.removeItem('token');
-                // Show user-friendly message
-                console.warn('⚠️ Session expired or invalid. Please login again.');
-                // Redirect to login after a short delay to allow user to see the message
                 setTimeout(() => {
                     if (window.location.pathname !== '/login') {
                         window.location.replace('/login');
                     }
                 }, 1000);
             }
-            // If on login page, let the error be handled by the login form
-        } else if (error?.response?.status === 403) {
-            // 403 = Forbidden (authenticated but insufficient permissions)
-            // Don't clear token or redirect - user is logged in but doesn't have permission
-            console.warn('🚫 Authorization error (403):', {
-                status: error?.response?.status,
-                message: error?.response?.data?.message || error?.message,
-                details: error?.response?.data?.details,
-                path: window.location.pathname
-            });
-            // Let the component handle the 403 error (show error message to user)
-            // Don't redirect or clear token
         }
+
         return Promise.reject(error);
     }
 );

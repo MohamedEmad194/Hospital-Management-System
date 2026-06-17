@@ -1,51 +1,68 @@
-import React, { useEffect, useState, useContext, useRef } from 'react';
+import React, { useEffect, useState, useContext, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import { fetchFeatures } from '../api/features';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
+import { SkeletonStats, SkeletonGrid } from '../components/Skeleton';
 
 export default function Dashboard() {
     const { t, i18n } = useTranslation();
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
+    const [overview, setOverview] = useState(null);
     const [features, setFeatures] = useState([]);
+    const [availableRoomsCount, setAvailableRoomsCount] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const statsSectionRef = useRef(null);
+
+    const isStaff = !!user?.roles?.some((r) => r === 'Staff' || r === 'Nurse');
+    const isAdmin = !!user?.roles?.includes('Admin');
+    const showStaffPanel = isStaff && !isAdmin;
 
     useEffect(() => {
         let cancelled = false;
         (async () => {
             setLoading(true);
             try {
-                const [statsData, featuresData] = await Promise.all([
+                const [statsData, overviewData, featuresData, roomsData] = await Promise.all([
                     apiClient.get('/Dashboard/stats'),
-                    fetchFeatures(i18n.language)
+                    apiClient.get('/Dashboard/overview').catch(() => null),
+                    fetchFeatures(i18n.language),
+                    showStaffPanel
+                        ? apiClient.get('/Rooms/available').catch(() => null)
+                        : Promise.resolve(null)
                 ]);
+                if (!cancelled && roomsData?.data) {
+                    setAvailableRoomsCount(
+                        Array.isArray(roomsData.data) ? roomsData.data.length : 0
+                    );
+                }
                 if (!cancelled) {
                     setStats(statsData.data);
+                    setOverview(overviewData?.data || null);
                     // Use features from API if available, otherwise use fallback
                     if (featuresData && featuresData.length > 0) {
                         setFeatures(featuresData);
                     } else {
                         // Use fallback features if API returns empty array
                         setFeatures([
-                            { 
-                                icon: '⚡', 
+                            {
+                                icon: '⚡',
                                 title: t('dashboard.features.quickCare.title'),
                                 desc: t('dashboard.features.quickCare.desc'),
                                 color: '#FFD700'
                             },
-                            { 
-                                icon: '🎯', 
+                            {
+                                icon: '🎯',
                                 title: t('dashboard.features.highPrecision.title'),
                                 desc: t('dashboard.features.highPrecision.desc'),
                                 color: '#00CED1'
                             },
-                            { 
-                                icon: '💚', 
+                            {
+                                icon: '💚',
                                 title: t('dashboard.features.comprehensiveCare.title'),
                                 desc: t('dashboard.features.comprehensiveCare.desc'),
                                 color: '#32CD32'
@@ -60,17 +77,11 @@ export default function Dashboard() {
                     
                     // Provide more specific error messages
                     if (err?.response?.status === 401) {
-                        errorMessage = i18n.language === 'ar' 
-                            ? 'يجب تسجيل الدخول لعرض الإحصائيات' 
-                            : 'Please login to view statistics';
+                        errorMessage = t('dashboard.errors.authRequired');
                     } else if (err?.message?.includes('Network Error') || err?.code === 'ECONNREFUSED') {
-                        errorMessage = i18n.language === 'ar' 
-                            ? 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الباك إند.' 
-                            : 'Cannot connect to server. Please ensure the backend is running.';
+                        errorMessage = t('dashboard.errors.backendDown');
                     } else if (err?.response?.status === 500) {
-                        errorMessage = i18n.language === 'ar' 
-                            ? 'خطأ في الخادم. يرجى المحاولة لاحقاً.' 
-                            : 'Server error. Please try again later.';
+                        errorMessage = t('dashboard.errors.serverError');
                     } else if (err?.response?.data) {
                         errorMessage = typeof err.response.data === 'string' 
                             ? err.response.data 
@@ -135,9 +146,38 @@ export default function Dashboard() {
             }
         })();
         return () => { cancelled = true; };
-    }, [i18n.language, t]);
+    }, [i18n.language, t, showStaffPanel]);
 
-    if (loading) return <div style={{ padding: 24 }}>{t('dashboard.loading')}</div>;
+    const statusBreakdown = useMemo(() => {
+        const statusPalette = {
+            Scheduled: '#3b82f6',
+            Confirmed: '#0ea5e9',
+            Completed: '#22c55e',
+            Cancelled: '#ef4444',
+            InProgress: '#f59e0b',
+            NoShow: '#94a3b8'
+        };
+        const raw = overview?.appointmentsByStatus || [];
+        const total = raw.reduce((sum, s) => sum + (s.count || 0), 0);
+        return raw
+            .map((s) => ({
+                ...s,
+                share: total > 0 ? Math.round((s.count / total) * 100) : 0,
+                color: statusPalette[s.status] || '#6366f1'
+            }))
+            .sort((a, b) => b.count - a.count);
+    }, [overview]);
+
+    if (loading) {
+        return (
+            <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
+                <div style={{ marginBottom: 30 }}>
+                    <SkeletonStats count={8} />
+                </div>
+                <SkeletonGrid count={6} rows={3} />
+            </div>
+        );
+    }
     if (error) {
         return (
             <div style={{ 
@@ -153,9 +193,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚠️</div>
                 <h2 style={{ color: '#b00020', marginBottom: '15px' }}>{error}</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>
-                    {i18n.language === 'ar' 
-                        ? 'تأكد من أن الباك إند يعمل على http://localhost:5230' 
-                        : 'Please ensure the backend is running on http://localhost:5230'}
+                    {t('dashboard.errors.backendHint')}
                 </p>
                 <button 
                     onClick={() => {
@@ -174,7 +212,7 @@ export default function Dashboard() {
                         fontWeight: '600'
                     }}
                 >
-                    {i18n.language === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                    {t('dashboard.errors.retry')}
                 </button>
             </div>
         );
@@ -229,6 +267,59 @@ export default function Dashboard() {
         { label: t('dashboard.items.overdueBills'), value: stats.overdueBills },
         { label: t('dashboard.items.lowStockMedicines'), value: stats.lowStockMedicines },
     ];
+
+    const currency = t('common.currency');
+    const formatCurrency = (value) => {
+        const num = Number(value || 0);
+        const formatted = num.toLocaleString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
+            maximumFractionDigits: 0
+        });
+        return `${formatted} ${currency}`;
+    };
+    const formatNumber = (value) =>
+        Number(value || 0).toLocaleString(i18n.language === 'ar' ? 'ar-EG' : 'en-US');
+
+    const topDepartments = overview?.topDepartments || [];
+    const monthlyTrend = overview?.monthlyAppointments || [];
+    const trendMax = Math.max(1, ...monthlyTrend.map((m) => m.count || 0));
+    const topDeptMax = Math.max(1, ...topDepartments.map((d) => d.appointmentCount || 0));
+
+    const highlightCards = overview
+        ? [
+              {
+                  key: 'totalRevenue',
+                  icon: '💵',
+                  title: t('dashboard.highlights.revenueTotal'),
+                  value: formatCurrency(overview.revenue?.total),
+                  hint: t('dashboard.highlights.revenueTotalHint'),
+                  tone: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
+              },
+              {
+                  key: 'monthRevenue',
+                  icon: '📈',
+                  title: t('dashboard.highlights.revenueMonth'),
+                  value: formatCurrency(overview.revenue?.thisMonth),
+                  hint: t('dashboard.highlights.revenueMonthHint'),
+                  tone: 'linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)'
+              },
+              {
+                  key: 'pendingRevenue',
+                  icon: '⏳',
+                  title: t('dashboard.highlights.revenuePending'),
+                  value: formatCurrency(overview.revenue?.pending),
+                  hint: t('dashboard.highlights.revenuePendingHint'),
+                  tone: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
+              },
+              {
+                  key: 'todayAppointments',
+                  icon: '📅',
+                  title: t('dashboard.highlights.todayAppointments'),
+                  value: formatNumber(overview.today?.appointments),
+                  hint: t('dashboard.highlights.todayAppointmentsHint'),
+                  tone: 'linear-gradient(135deg, #8b5cf6 0%, #c084fc 100%)'
+              }
+          ]
+        : [];
 
     const aboutContent = t('dashboard.about', { returnObjects: true }) || {};
     const aboutAreas = t('dashboard.about.areas', { returnObjects: true }) || {};
@@ -327,12 +418,92 @@ export default function Dashboard() {
         }
     };
 
+    const staffFirstName = user?.firstName || user?.email?.split('@')[0] || '';
+    const todayLabel = new Date().toLocaleDateString(
+        i18n.language === 'ar' ? 'ar-EG' : 'en-US',
+        { weekday: 'long', day: 'numeric', month: 'long' }
+    );
+    const staffTiles = showStaffPanel
+        ? [
+              {
+                  key: 'appointments',
+                  icon: '📅',
+                  value: formatNumber(overview?.today?.appointments ?? 0),
+                  label: t('dashboard.staffPanel.todaysAppointments'),
+                  link: t('dashboard.staffPanel.viewAll'),
+                  path: '/appointments'
+              },
+              {
+                  key: 'rooms',
+                  icon: '🚪',
+                  value: formatNumber(availableRoomsCount ?? 0),
+                  label: t('dashboard.staffPanel.availableRooms'),
+                  link: t('dashboard.staffPanel.manage'),
+                  path: '/rooms'
+              },
+              {
+                  key: 'patients',
+                  icon: '👥',
+                  value: formatNumber(stats?.totalPatients ?? 0),
+                  label: t('dashboard.staffPanel.totalPatients'),
+                  link: t('dashboard.staffPanel.viewAll'),
+                  path: '/patients'
+              },
+              {
+                  key: 'bills',
+                  icon: '🧾',
+                  value: formatNumber(overview?.today?.billsIssued ?? 0),
+                  label: t('dashboard.staffPanel.todaysBills'),
+                  link: t('dashboard.staffPanel.viewAll'),
+                  path: '/bills'
+              }
+          ]
+        : [];
+
     return (
-        <div className="dashboard-page" style={{ 
-            minHeight: '100vh', 
+        <div className="dashboard-page" style={{
+            minHeight: '100vh',
             background: '#f8f9fa',
             padding: '0'
         }}>
+            {/* Staff Welcome Panel (Staff role only) */}
+            {showStaffPanel && (
+                <section className="staff-panel" aria-label="Staff overview">
+                    <div className="staff-panel__card">
+                        <div className="staff-panel__head">
+                            <div>
+                                <h1 className="staff-panel__welcome">
+                                    {t('dashboard.staffPanel.welcome', { name: staffFirstName })}
+                                </h1>
+                                <p className="staff-panel__subtitle">
+                                    {t('dashboard.staffPanel.subtitle')}
+                                </p>
+                            </div>
+                            <span className="staff-panel__date">
+                                {t('dashboard.staffPanel.today', { date: todayLabel })}
+                            </span>
+                        </div>
+                        <div className="staff-panel__grid">
+                            {staffTiles.map((tile) => (
+                                <button
+                                    key={tile.key}
+                                    type="button"
+                                    className="staff-panel__tile"
+                                    onClick={() => navigate(tile.path)}
+                                >
+                                    <span className="staff-panel__tile-icon" aria-hidden="true">
+                                        {tile.icon}
+                                    </span>
+                                    <span className="staff-panel__tile-value">{tile.value}</span>
+                                    <span className="staff-panel__tile-label">{tile.label}</span>
+                                    <span className="staff-panel__tile-link">{tile.link} →</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Hero Banner Section */}
             <div
                 className="dashboard-hero"
@@ -504,6 +675,202 @@ export default function Dashboard() {
                 </div>
                 </section>
 
+                {overview && (
+                    <section className="dashboard-section dashboard-insights">
+                        <div className="section-header">
+                            <div className="section-chip">
+                                <span aria-hidden="true">📊</span>
+                            </div>
+                            <h2>{t('dashboard.insights.title')}</h2>
+                            <p>{t('dashboard.insights.desc')}</p>
+                        </div>
+
+                        <div className="dashboard-highlights">
+                            {highlightCards.map((card) => (
+                                <article
+                                    key={card.key}
+                                    className="dashboard-highlight"
+                                    style={{ '--highlight-tone': card.tone }}
+                                >
+                                    <div className="dashboard-highlight__icon" aria-hidden="true">
+                                        {card.icon}
+                                    </div>
+                                    <div className="dashboard-highlight__body">
+                                        <span className="dashboard-highlight__label">
+                                            {card.title}
+                                        </span>
+                                        <strong className="dashboard-highlight__value">
+                                            {card.value}
+                                        </strong>
+                                        <small className="dashboard-highlight__hint">
+                                            {card.hint}
+                                        </small>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+
+                        <div className="dashboard-insights__grid">
+                            <article className="dashboard-panel">
+                                <header className="dashboard-panel__head">
+                                    <h3>{t('dashboard.insights.statusTitle')}</h3>
+                                    <span>{t('dashboard.insights.statusSubtitle')}</span>
+                                </header>
+                                {statusBreakdown.length === 0 ? (
+                                    <p className="dashboard-panel__empty">
+                                        {t('dashboard.insights.empty')}
+                                    </p>
+                                ) : (
+                                    <ul className="dashboard-status-list">
+                                        {statusBreakdown.map((item) => (
+                                            <li key={item.status}>
+                                                <div className="dashboard-status-list__head">
+                                                    <span
+                                                        className="dashboard-status-list__dot"
+                                                        style={{ background: item.color }}
+                                                    />
+                                                    <span className="dashboard-status-list__label">
+                                                        {item.status}
+                                                    </span>
+                                                    <span className="dashboard-status-list__value">
+                                                        {formatNumber(item.count)} · {item.share}%
+                                                    </span>
+                                                </div>
+                                                <div className="dashboard-bar">
+                                                    <div
+                                                        className="dashboard-bar__fill"
+                                                        style={{
+                                                            width: `${item.share}%`,
+                                                            background: item.color
+                                                        }}
+                                                    />
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </article>
+
+                            <article className="dashboard-panel">
+                                <header className="dashboard-panel__head">
+                                    <h3>{t('dashboard.insights.topDeptsTitle')}</h3>
+                                    <span>{t('dashboard.insights.topDeptsSubtitle')}</span>
+                                </header>
+                                {topDepartments.length === 0 ? (
+                                    <p className="dashboard-panel__empty">
+                                        {t('dashboard.insights.empty')}
+                                    </p>
+                                ) : (
+                                    <ul className="dashboard-dept-list">
+                                        {topDepartments.map((dept) => (
+                                            <li key={dept.departmentName}>
+                                                <div className="dashboard-dept-list__row">
+                                                    <span className="dashboard-dept-list__name">
+                                                        {dept.departmentName}
+                                                    </span>
+                                                    <span className="dashboard-dept-list__count">
+                                                        {formatNumber(dept.appointmentCount)}
+                                                    </span>
+                                                </div>
+                                                <div className="dashboard-bar">
+                                                    <div
+                                                        className="dashboard-bar__fill dashboard-bar__fill--accent"
+                                                        style={{
+                                                            width: `${
+                                                                ((dept.appointmentCount || 0) /
+                                                                    topDeptMax) *
+                                                                100
+                                                            }%`
+                                                        }}
+                                                    />
+                                                </div>
+                                                <small className="dashboard-dept-list__meta">
+                                                    {formatNumber(dept.doctorCount)}{' '}
+                                                    {t('dashboard.items.doctors')}
+                                                </small>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </article>
+
+                            <article className="dashboard-panel dashboard-panel--wide">
+                                <header className="dashboard-panel__head">
+                                    <h3>{t('dashboard.insights.trendTitle')}</h3>
+                                    <span>{t('dashboard.insights.trendSubtitle')}</span>
+                                </header>
+                                {monthlyTrend.length === 0 ? (
+                                    <p className="dashboard-panel__empty">
+                                        {t('dashboard.insights.empty')}
+                                    </p>
+                                ) : (
+                                    <div className="dashboard-trend">
+                                        {monthlyTrend.map((point) => {
+                                            const height = Math.max(
+                                                8,
+                                                Math.round(((point.count || 0) / trendMax) * 100)
+                                            );
+                                            return (
+                                                <div
+                                                    key={`${point.year}-${point.month}`}
+                                                    className="dashboard-trend__bar"
+                                                >
+                                                    <span className="dashboard-trend__value">
+                                                        {formatNumber(point.count)}
+                                                    </span>
+                                                    <div
+                                                        className="dashboard-trend__fill"
+                                                        style={{ height: `${height}%` }}
+                                                    />
+                                                    <span className="dashboard-trend__label">
+                                                        {point.label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </article>
+
+                            <article className="dashboard-panel dashboard-today">
+                                <header className="dashboard-panel__head">
+                                    <h3>{t('dashboard.insights.todayTitle')}</h3>
+                                    <span>{t('dashboard.insights.todaySubtitle')}</span>
+                                </header>
+                                <div className="dashboard-today__grid">
+                                    <div className="dashboard-today__cell">
+                                        <span>📅</span>
+                                        <strong>
+                                            {formatNumber(overview.today?.appointments)}
+                                        </strong>
+                                        <small>
+                                            {t('dashboard.items.appointments')}
+                                        </small>
+                                    </div>
+                                    <div className="dashboard-today__cell">
+                                        <span>🧑‍🤝‍🧑</span>
+                                        <strong>
+                                            {formatNumber(overview.today?.newPatients)}
+                                        </strong>
+                                        <small>
+                                            {t('dashboard.insights.newPatients')}
+                                        </small>
+                                    </div>
+                                    <div className="dashboard-today__cell">
+                                        <span>🧾</span>
+                                        <strong>
+                                            {formatNumber(overview.today?.billsIssued)}
+                                        </strong>
+                                        <small>
+                                            {t('dashboard.insights.billsIssued')}
+                                        </small>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                )}
+
                 {/* Quick Actions Section */}
                 <section className="quick-actions-section">
                     <div className="quick-actions-section__head">
@@ -515,41 +882,41 @@ export default function Dashboard() {
                     </div>
                     <div className="quick-actions-grid">
                         {[
-                            { 
-                                label: t('dashboard.addPatient'), 
-                                icon: '👥', 
-                                color: '#4CAF50', 
+                            {
+                                label: t('dashboard.addPatient'),
+                                icon: '👥',
+                                color: '#4CAF50',
                                 desc: t('dashboard.addPatientDesc'),
                                 path: '/patients/add',
                                 requiresAuth: true,
-                                allowedRoles: ['Admin', 'Doctor']
+                                allowedRoles: ['Admin', 'Doctor', 'Staff', 'Nurse']
                             },
-                            { 
-                                label: t('dashboard.addDoctor'), 
-                                icon: '👨‍⚕️', 
-                                color: '#2196F3', 
+                            {
+                                label: t('dashboard.addDoctor'),
+                                icon: '👨‍⚕️',
+                                color: '#2196F3',
                                 desc: t('dashboard.addDoctorDesc'),
                                 path: '/doctors/add',
                                 requiresAuth: true,
                                 allowedRoles: ['Admin']
                             },
-                            { 
-                                label: t('dashboard.bookAppointmentAction'), 
-                                icon: '📅', 
-                                color: '#FF9800', 
+                            {
+                                label: t('dashboard.bookAppointmentAction'),
+                                icon: '📅',
+                                color: '#FF9800',
                                 desc: t('dashboard.bookAppointmentDesc'),
                                 path: '/appointments/add',
                                 requiresAuth: true,
-                                allowedRoles: ['Admin', 'Doctor', 'Patient']
+                                allowedRoles: ['Admin', 'Doctor', 'Staff', 'Nurse', 'Patient']
                             },
-                            { 
-                                label: t('dashboard.addBill'), 
-                                icon: '💰', 
-                                color: '#9C27B0', 
+                            {
+                                label: t('dashboard.addBill'),
+                                icon: '💰',
+                                color: '#9C27B0',
                                 desc: t('dashboard.addBillDesc'),
                                 path: '/bills/add',
                                 requiresAuth: true,
-                                allowedRoles: ['Admin', 'Doctor']
+                                allowedRoles: ['Admin', 'Doctor', 'Staff', 'Nurse']
                             }
                         ].filter(action => {
                             // Show all actions, but filter based on user role if logged in

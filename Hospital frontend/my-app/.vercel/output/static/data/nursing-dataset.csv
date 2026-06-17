@@ -1,0 +1,14 @@
+unit_id,unit_name,wing,lead_nurse,total_nurses,coverage,ratio,focus_areas,average_response_minutes,bedside_technology
+ICU-01,Intensive Care Unit,"North Tower, Level 5",Sarah Youssef,18,24/7,"1:2","Ventilators; Sepsis bundles; Post-op cardiac",3,"Smart pumps; Hemodynamic monitors"
+CCU-02,Cardiac Care,"North Tower, Level 4",Ahmed Kamal,14,24/7,"1:3","Post-CABG; Arrhythmia monitoring; Cath lab recovery",4,"Telemetry; Wearable ECG"
+ER-03,Emergency Response,"Ground Pavilion A",Mona Helmy,26,24/7,Team-based,"Trauma; Triage; Code blue management",2,"Shock rooms; Point-of-care ultrasound"
+PED-04,Pediatrics,"Family Center, Level 2",Rania Saad,16,24/7,"1:4","Growth tracking; Pain distraction; Parental coaching",5,"Smart cribs; Comfort carts"
+NICU-05,Neonatal ICU,"Family Center, Level 3",Hassan Emad,20,24/7,"1:1-2","Premature infants; Incubator care; Kangaroo programs",3,"Closed incubators; Bilirubin sensors"
+SURG-06,Post-Surgical Recovery,"South Tower, Level 6",Yara Hamed,22,24/7,"1:3","Pain control; Wound vacs; Early mobility",6,"Wireless PCA pumps; Mobility trackers"
+MED-07,Medical Ward,"South Tower, Level 4",Karim Talaat,24,24/7,"1:5","Chronic diseases; Diabetic education; IV therapy",7,"Digital whiteboards; IV smart pumps"
+ONC-08,Oncology Day Care,"Cancer Center, Level 1",Lina Fathi,12,"06:00-00:00","1:3","Chemo administration; Port care; Symptom coaching",8,"Infusion chairs; Cold cap systems"
+HOME-09,Home Care & Tele-Nursing,Virtual Command,Omar Safwat,15,"07:00-23:00","1:15","Remote vitals; Discharge follow-up; Medication reconciliation",10,"Telehealth kits; Home sensors"
+REHAB-10,Rehabilitation Support,"Wellness Pavilion, Level 2",Dina Ghandour,10,"06:00-22:00","1:4","Neuro recovery; Mobility labs; Caregiver training",9,"Exoskeleton aids; Balance platforms"
+MAT-11,Maternity & Postpartum,"Family Center, Level 1",Heba Abdelrahman,18,24/7,"1:3","Lactation support; Newborn safety; Recovery coaching",4,"Smart bassinets; Pain scoring tablets"
+EDU-12,Clinical Education,Knowledge Hub,Nader Fouad,8,"08:00-18:00","1:25 trainees","Simulation labs; Competency exams; Research audits",12,"VR simulators; Skills trackers"
+

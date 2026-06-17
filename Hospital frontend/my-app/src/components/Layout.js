@@ -1,8 +1,36 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ChatbotWidget from './ChatbotWidget';
+
+const ALL_NAV_ITEMS = [
+    { key: 'nursing', to: '/nursing', icon: '🩺', i18n: 'sidebar.nursing', roles: ['*'] },
+    { key: 'xrayAi', to: '/xray-ai', icon: '🫁', i18n: 'sidebar.xrayAi', roles: ['Admin', 'Doctor'] },
+    { key: 'patients', to: '/patients', icon: '👥', i18n: 'sidebar.patients', roles: ['Admin', 'Doctor', 'Staff', 'Nurse'] },
+    { key: 'doctors', to: '/doctors', icon: '👨‍⚕️', i18n: 'sidebar.doctors', roles: ['Admin', 'Doctor', 'Staff', 'Patient'] },
+    { key: 'appointments', to: '/appointments', icon: '📅', i18n: 'sidebar.appointments', roles: ['Admin', 'Doctor', 'Staff', 'Nurse'] },
+    { key: 'myAppointments', to: '/appointments', icon: '📅', i18n: 'common.myAppointments', roles: ['Patient'] },
+    { key: 'bills', to: '/bills', icon: '💰', i18n: 'sidebar.bills', roles: ['Admin', 'Staff'] },
+    { key: 'myBills', to: '/bills', icon: '💰', i18n: 'common.myBills', roles: ['Patient'] },
+    { key: 'departments', to: '/departments', icon: '🏥', i18n: 'sidebar.departments', roles: ['Admin', 'Doctor', 'Staff'] },
+    { key: 'rooms', to: '/rooms', icon: '🚪', i18n: 'sidebar.rooms', roles: ['Admin', 'Doctor', 'Staff', 'Nurse'] },
+    { key: 'medicines', to: '/medicines', icon: '💊', i18n: 'sidebar.medicines', roles: ['Admin', 'Doctor', 'Staff', 'Nurse'] },
+    { key: 'reports', to: '/reports', icon: '📋', i18n: 'sidebar.reports', roles: ['Patient'] },
+];
+
+function pickItemsForRoles(roles) {
+    return ALL_NAV_ITEMS.filter((item) => {
+        if (item.roles.includes('*')) return true;
+        if (!roles || roles.length === 0) {
+            // unauthenticated: only public items (those with '*' covered above)
+            return false;
+        }
+        return item.roles.some((r) => roles.includes(r));
+    });
+}
+
+const ROLE_PRIORITY = ['Admin', 'Doctor', 'Nurse', 'Pharmacist', 'Staff', 'Patient'];
 
 export default function Layout() {
     const { t, i18n } = useTranslation();
@@ -24,107 +52,37 @@ export default function Layout() {
     const closeMenuLabel = t('common.closeMenu', { defaultValue: 'Close menu' });
     const changeLanguageLabel = t('common.changeLanguage', { defaultValue: 'Change language' });
     const handleToggleMenu = () => setMenuOpen((prev) => !prev);
-    const roleLabel = user?.roles?.includes('Admin')
-        ? 'مدير النظام'
-        : user?.roles?.includes('Doctor')
-        ? 'طبيب'
-        : user?.roles?.includes('Patient')
-        ? 'مريض'
-        : 'مستخدم';
 
-    const adminNav = (
-        <>
-            <NavLink to="/nursing" className={navLinkClass}>
-                <span aria-hidden="true">🩺</span>
-                {t('sidebar.nursing')}
-            </NavLink>
-            <NavLink to="/patients" className={navLinkClass}>
-                <span aria-hidden="true">👥</span>
-                {t('sidebar.patients')}
-            </NavLink>
-            <NavLink to="/doctors" className={navLinkClass}>
-                <span aria-hidden="true">👨‍⚕️</span>
-                {t('sidebar.doctors')}
-            </NavLink>
-            <NavLink to="/appointments" className={navLinkClass}>
-                <span aria-hidden="true">📅</span>
-                {t('sidebar.appointments')}
-            </NavLink>
-            <NavLink to="/bills" className={navLinkClass}>
-                <span aria-hidden="true">💰</span>
-                {t('sidebar.bills')}
-            </NavLink>
-            <NavLink to="/departments" className={navLinkClass}>
-                <span aria-hidden="true">🏥</span>
-                {t('sidebar.departments')}
-            </NavLink>
-            <NavLink to="/rooms" className={navLinkClass}>
-                <span aria-hidden="true">🚪</span>
-                {t('sidebar.rooms')}
-            </NavLink>
-            <NavLink to="/medicines" className={navLinkClass}>
-                <span aria-hidden="true">💊</span>
-                {t('sidebar.medicines')}
-            </NavLink>
-        </>
-    );
+    const primaryRole = useMemo(() => {
+        if (!user?.roles) return null;
+        return ROLE_PRIORITY.find((r) => user.roles.includes(r)) || user.roles[0];
+    }, [user]);
 
-    const guestNav = (
-        <>
-            <NavLink to="/nursing" className={navLinkClass}>
-                <span aria-hidden="true">🩺</span>
-                {t('sidebar.nursing')}
-            </NavLink>
-            <NavLink to="/appointments" className={navLinkClass}>
-                <span aria-hidden="true">📅</span>
-                {t('common.myAppointments')}
-            </NavLink>
-            <NavLink to="/bills" className={navLinkClass}>
-                <span aria-hidden="true">💰</span>
-                {t('common.myBills')}
-            </NavLink>
-            <NavLink to="/reports" className={navLinkClass}>
-                <span aria-hidden="true">📋</span>
-                تقاريري الطبية
-            </NavLink>
-        </>
-    );
+    const roleLabel = primaryRole
+        ? t(`common.roles.${primaryRole.toLowerCase()}`, {
+              defaultValue: primaryRole,
+          })
+        : t('common.roles.guest', { defaultValue: 'Guest' });
+
+    const navItems = useMemo(() => pickItemsForRoles(user?.roles || []), [user]);
 
     return (
         <div className="layout-shell">
             <header className="layout-header">
                 <div className={`layout-header__inner ${isArabic ? 'layout-header__inner--rtl' : ''}`}>
-                    <Link to="/" className="layout-brand" style={{ 
-                        textDecoration: 'none',
-                        border: 'none',
-                        background: 'transparent',
-                        boxShadow: 'none',
-                        padding: '8px 12px'
-                    }}>
-                        <img 
-                            src={`${process.env.PUBLIC_URL}/hospital-logo.png`}
+                    <Link to="/" className="layout-brand layout-brand--highlight">
+                        <img
+                            className="layout-brand__logo-img"
+                            src={`${process.env.PUBLIC_URL}/logo.png`}
                             alt="Al-Hayat Hospital Logo"
-                            style={{
-                                width: 85,
-                                height: 85,
-                                objectFit: 'contain',
-                                marginRight: isArabic ? 0 : 12,
-                                marginLeft: isArabic ? 12 : 0,
-                                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15))',
-                                imageRendering: 'crisp-edges'
-                            }}
-                            onError={(e) => {
-                                e.target.src = `${process.env.PUBLIC_URL}/logo.png`;
-                            }}
                         />
                         <div className="layout-brand__text">
-                            <div className="layout-brand__title" style={{ 
-                                color: '#2d3748',
-                                fontSize: '1.2rem',
-                                fontWeight: 700
-                            }}>
+                            <span className="layout-brand__title">
                                 {t('dashboard.hospitalName')}
-                            </div>
+                            </span>
+                            <span className="layout-brand__subtitle">
+                                {t('dashboard.subtitle')}
+                            </span>
                         </div>
                     </Link>
 
@@ -132,12 +90,15 @@ export default function Layout() {
                         className={`layout-nav ${menuOpen ? 'layout-nav--open' : ''}`}
                         aria-label={navAriaLabel}
                     >
-                        {user?.roles?.includes('Admin') || user?.roles?.includes('Doctor')
-                            ? adminNav
-                            : guestNav}
+                        {navItems.map((item) => (
+                            <NavLink key={item.key} to={item.to} className={navLinkClass} end={false}>
+                                <span aria-hidden="true">{item.icon}</span>
+                                {t(item.i18n)}
+                            </NavLink>
+                        ))}
                     </nav>
 
-                    <button 
+                    <button
                         type="button"
                         className="layout-nav__toggle"
                         onClick={handleToggleMenu}
@@ -201,10 +162,10 @@ export default function Layout() {
                 </div>
                 </header>
 
-                <div 
+                <div
                 className={`layout-nav__overlay ${menuOpen ? 'is-visible' : ''}`}
                 role="presentation"
-                    onClick={() => setMenuOpen(false)} 
+                    onClick={() => setMenuOpen(false)}
             />
 
             <main className="layout-main">

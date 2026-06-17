@@ -1,6 +1,4 @@
-import apiClient from './client';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5230';
+import apiClient, { API_BASE_URL } from './client';
 
 export async function createStripeSession(billId, amount, currency = 'EGP') {
     const response = await fetch(`${API_BASE_URL}/api/Payment/create-stripe-session`, {

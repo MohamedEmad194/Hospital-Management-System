@@ -1,0 +1,39 @@
+Name,GenericName,DosageForm,Strength,Manufacturer,Description,Indications,Price,StockQuantity,MinimumStockLevel,Unit,RequiresPrescription
+Paracetamol,Acetaminophen,Tablet,500mg,PharmaCorp,Pain reliever and fever reducer,"Headache, fever, muscle pain",5.00,1000,100,tablet,False
+Amoxicillin,Amoxicillin,Capsule,250mg,MediCorp,Antibiotic for bacterial infections,"Respiratory infections, skin infections",15.00,500,50,capsule,True
+Ibuprofen,Ibuprofen,Tablet,400mg,HealthPharma,Anti-inflammatory and pain reliever,"Inflammation, pain, fever",8.00,60,80,tablet,False
+Metformin,Metformin Hydrochloride,Tablet,850mg,GlucoPharm,Antidiabetic,Type 2 Diabetes,12.50,45,100,tablet,True
+Lisinopril,Lisinopril,Tablet,10mg,CardioMed,ACE inhibitor,Hypertension,9.75,30,80,tablet,True
+Omeprazole,Omeprazole,Capsule,20mg,GastroHeal,Proton pump inhibitor,Acid reflux,11.00,300,100,capsule,False
+Atorvastatin,Atorvastatin,Tablet,20mg,LipoPharm,Statin,High cholesterol,14.20,75,150,tablet,True
+Azithromycin,Azithromycin,Tablet,500mg,MacroMed,Antibiotic,Respiratory infections,22.00,40,80,tablet,True
+Cetirizine,Cetirizine Hydrochloride,Tablet,10mg,AllerGo,Antihistamine,Allergies,6.00,200,80,tablet,False
+Salbutamol Inhaler,Albuterol,Inhaler,100mcg/dose,Respira,Bronchodilator,Asthma,55.00,20,60,device,True
+Insulin Glargine,Insulin Glargine,Injection,100 IU/ml,GlucoCare,Long-acting insulin,Diabetes,120.00,15,50,vial,True
+Losartan,Losartan Potassium,Tablet,50mg,CardioMed,ARB,Hypertension,10.00,70,120,tablet,True
+Vitamin D3,Cholecalciferol,Capsule,1000 IU,NutriLife,Supplement,Deficiency,5.50,500,100,capsule,False
+Warfarin,Warfarin Sodium,Tablet,5mg,Coagulo,Anticoagulant,Thrombosis prevention,18.00,25,80,tablet,True
+Aspirin,Acetylsalicylic Acid,Tablet,100mg,CardioPharm,Antiplatelet and pain reliever,"Heart attack prevention, pain relief",3.50,800,200,tablet,False
+Ciprofloxacin,Ciprofloxacin,Tablet,500mg,AntibioCorp,Broad-spectrum antibiotic,"Urinary tract infections, respiratory infections",25.00,350,100,tablet,True
+Levothyroxine,Levothyroxine Sodium,Tablet,50mcg,ThyroMed,Thyroid hormone replacement,Hypothyroidism,8.50,400,150,tablet,True
+Amlodipine,Amlodipine Besylate,Tablet,5mg,CardioMed,Calcium channel blocker,"Hypertension, angina",7.00,280,120,tablet,True
+Metronidazole,Metronidazole,Tablet,500mg,AntibioCorp,Antibiotic and antiprotozoal,"Bacterial infections, parasitic infections",12.00,220,80,tablet,True
+Simvastatin,Simvastatin,Tablet,20mg,LipoPharm,HMG-CoA reductase inhibitor,"High cholesterol, cardiovascular disease prevention",11.50,180,100,tablet,True
+Furosemide,Furosemide,Tablet,40mg,DiuroMed,Loop diuretic,"Edema, hypertension, heart failure",4.50,320,120,tablet,True
+Diclofenac,Diclofenac Sodium,Tablet,50mg,PainRelief,NSAID pain reliever,"Pain, inflammation, arthritis",9.00,450,150,tablet,False
+Cephalexin,Cephalexin,Capsule,500mg,MediCorp,Cephalosporin antibiotic,"Bacterial infections, skin infections",18.00,380,100,capsule,True
+Metoclopramide,Metoclopramide,Tablet,10mg,GastroHeal,Anti-emetic and prokinetic,"Nausea, vomiting, gastroparesis",5.00,260,80,tablet,True
+Ranitidine,Ranitidine Hydrochloride,Tablet,150mg,GastroHeal,H2 receptor antagonist,"Peptic ulcers, GERD",6.50,340,100,tablet,False
+Hydrochlorothiazide,Hydrochlorothiazide,Tablet,25mg,CardioMed,Thiazide diuretic,"Hypertension, edema",3.00,290,100,tablet,True
+Montelukast,Montelukast Sodium,Tablet,10mg,Respira,Leukotriene receptor antagonist,"Asthma, allergic rhinitis",35.00,150,80,tablet,True
+Loratadine,Loratadine,Tablet,10mg,AllerGo,Antihistamine,"Allergic rhinitis, urticaria",7.50,420,150,tablet,False
+Calcium Carbonate,Calcium Carbonate,Tablet,500mg,NutriLife,Calcium supplement,"Calcium deficiency, osteoporosis prevention",4.00,600,200,tablet,False
+Ferrous Sulfate,Ferrous Sulfate,Tablet,325mg,NutriLife,Iron supplement,Iron deficiency anemia,5.50,380,120,tablet,False
+Prednisolone,Prednisolone,Tablet,5mg,SteroidPharm,Corticosteroid,"Inflammation, autoimmune disorders, allergies",8.00,240,100,tablet,True
+Atenolol,Atenolol,Tablet,50mg,CardioMed,Beta-blocker,"Hypertension, angina, arrhythmia",6.00,310,120,tablet,True
+Fluconazole,Fluconazole,Capsule,150mg,FungiMed,Antifungal medication,"Fungal infections, candidiasis",28.00,180,80,capsule,True
+Diphenhydramine,Diphenhydramine,Tablet,25mg,AllerGo,Antihistamine and sedative,"Allergies, insomnia, motion sickness",4.50,500,150,tablet,False
+Gliclazide,Gliclazide,Tablet,80mg,GlucoPharm,Sulfonylurea antidiabetic,Type 2 Diabetes,15.00,200,100,tablet,True
+Ciprofloxacin Eye Drops,Ciprofloxacin,Eye Drops,0.3%,OphthaMed,Antibiotic eye drops,"Bacterial eye infections, conjunctivitis",32.00,120,50,bottle,True
+Tramadol,Tramadol Hydrochloride,Capsule,50mg,PainRelief,Opioid analgesic,Moderate to severe pain,20.00,90,60,capsule,True
+Folic Acid,Folic Acid,Tablet,5mg,NutriLife,B vitamin supplement,"Folate deficiency, pregnancy, anemia",3.00,550,200,tablet,False

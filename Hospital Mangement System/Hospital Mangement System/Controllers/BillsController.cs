@@ -20,6 +20,26 @@ namespace Hospital_Management_System.Controllers
         }
 
         /// <summary>
+        /// Get bills in a paged, searchable format.
+        /// </summary>
+        [HttpGet("paged")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult<PagedResultDto<BillDto>>> GetPagedBills([FromQuery] PagedQuery query)
+        {
+            try
+            {
+                var result = await _billService.GetPagedBillsAsync(
+                    query.NormalizedPage, query.NormalizedPageSize, query.Search);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paged bills");
+                return StatusCode(500, "An error occurred while retrieving bills");
+            }
+        }
+
+        /// <summary>
         /// Get all bills (filtered by role)
         /// </summary>
         [HttpGet]

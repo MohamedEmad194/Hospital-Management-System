@@ -29,6 +29,41 @@ namespace Hospital_Management_System.Services
             return _mapper.Map<IEnumerable<DoctorDto>>(doctors);
         }
 
+        public async Task<PagedResultDto<DoctorDto>> GetPagedDoctorsAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Doctors
+                .Include(d => d.Department)
+                .Where(d => !d.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(d =>
+                    (d.FirstName != null && d.FirstName.ToLower().Contains(term)) ||
+                    (d.LastName != null && d.LastName.ToLower().Contains(term)) ||
+                    (d.Email != null && d.Email.ToLower().Contains(term)) ||
+                    (d.LicenseNumber != null && d.LicenseNumber.ToLower().Contains(term)) ||
+                    (d.Specialization != null && d.Specialization.ToLower().Contains(term)) ||
+                    (d.Department != null && d.Department.Name != null && d.Department.Name.ToLower().Contains(term)));
+            }
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderBy(d => d.FirstName)
+                .ThenBy(d => d.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResultDto<DoctorDto>
+            {
+                Items = _mapper.Map<IEnumerable<DoctorDto>>(items),
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = total
+            };
+        }
+
         public async Task<DoctorDto?> GetDoctorByIdAsync(int id)
         {
             var doctor = await _context.Doctors

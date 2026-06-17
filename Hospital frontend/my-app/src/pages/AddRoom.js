@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createRoom } from '../api/rooms';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ErrorAlert from '../components/ErrorAlert';
 
 export default function AddRoom() {
     const { t } = useTranslation();
@@ -52,7 +53,7 @@ export default function AddRoom() {
     return (
         <div style={{ padding: 24 }}>
             <h2 style={{ marginBottom: 16 }}>{t('addRoom.title')}</h2>
-            {error && <div style={{ color: '#b00020', marginBottom: 12 }}>{error}</div>}
+            <ErrorAlert message={error} onDismiss={() => setError('')} />
             <form onSubmit={onSubmit} className="card" style={{ padding: 16, maxWidth: 720 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <label>

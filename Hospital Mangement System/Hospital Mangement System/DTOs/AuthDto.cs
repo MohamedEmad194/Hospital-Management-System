@@ -12,9 +12,8 @@ namespace Hospital_Management_System.DTOs
         [StringLength(100, MinimumLength = 6)]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
         [StringLength(50)]
-        public string Role { get; set; } = string.Empty; // Admin, Doctor, Patient, Nurse, Staff
+        public string? Role { get; set; } // Optional: Admin, Doctor, Patient, Nurse, Staff
     }
 
     public class RegisterDto

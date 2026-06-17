@@ -1,0 +1,6 @@
+FirstName,LastName,NationalId,Email,PhoneNumber,DateOfBirth,Gender,Address,EmergencyContactName,EmergencyContactPhone,InsuranceProvider,InsuranceNumber,MedicalHistory,Allergies
+Mohamed,Youssef,2987654321,mohamed.youssef@hospital.com,01123456789,1985-05-15,Male,"Nile Street, Cairo, Egypt",Ahmed Youssef,01234567890,National Health Insurance,INS-0001,No chronic conditions,
+Salma,Khaled,2876543210,salma.khaled@hospital.com,01198765432,1992-03-10,Female,"Tahrir Street, Giza, Egypt",Khaled Mahmoud,01298765432,Comprehensive Health Insurance,INS-0002,No chronic conditions,Penicillin
+Hassan,Mahmoud,2765432109,hassan.mahmoud@hospital.com,01134567890,1978-09-01,Male,"Corniche El Nil Street, Alexandria, Egypt",Brother - Hassan,01234567891,Public Health Insurance,INS-0003,Hypertension,
+Nora,Adel,2654321098,nora.adel@hospital.com,01145678901,1995-01-22,Female,"Maadi Street, Cairo, Egypt",Sister - Nora,01245678902,National Health Insurance,INS-0004,No chronic conditions,Ibuprofen
+Yasmine,Fouad,2543210987,yasmine.fouad@hospital.com,01156789012,2001-07-30,Female,"Pyramid Street, Giza, Egypt",Mother - Yasmine,01256789013,,,No chronic conditions,

@@ -5,6 +5,14 @@ export async function fetchAppointments() {
     return data;
 }
 
+export async function fetchAppointmentsPaged({ page = 1, pageSize = 20, search = '', signal } = {}) {
+    const { data } = await apiClient.get('/Appointments/paged', {
+        params: { page, pageSize, search: search || undefined },
+        signal,
+    });
+    return data;
+}
+
 export async function fetchAppointment(id) {
     const { data } = await apiClient.get(`/Appointments/${id}`);
     return data;

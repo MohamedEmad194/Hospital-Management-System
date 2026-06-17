@@ -5,6 +5,14 @@ export async function fetchDoctors() {
     return data;
 }
 
+export async function fetchDoctorsPaged({ page = 1, pageSize = 20, search = '', signal } = {}) {
+    const { data } = await apiClient.get('/Doctors/paged', {
+        params: { page, pageSize, search: search || undefined },
+        signal,
+    });
+    return data;
+}
+
 export async function searchDoctors(searchTerm) {
     const { data } = await apiClient.get('/Doctors/search', { params: { searchTerm } });
     return data;

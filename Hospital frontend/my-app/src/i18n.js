@@ -27,7 +27,20 @@ const resources = {
         myBills: 'My Bills',
         unit: 'Unit',
         currency: 'EGP',
-        select: 'Select...'
+        select: 'Select...',
+        pageMeta: 'Page {{page}} of {{totalPages}} · {{total}} total',
+        noResults: 'No results found',
+        previousPage: 'Previous page',
+        nextPage: 'Next page',
+        roles: {
+          admin: 'Administrator',
+          doctor: 'Doctor',
+          nurse: 'Nurse',
+          pharmacist: 'Pharmacist',
+          staff: 'Staff',
+          patient: 'Patient',
+          guest: 'Guest'
+        }
       },
       sidebar: {
         dashboard: 'Dashboard',
@@ -39,7 +52,9 @@ const resources = {
         rooms: 'Rooms',
         medicines: 'Medicines',
         nursing: 'Nursing',
-        chatbot: 'Chat Assistant'
+        chatbot: 'Chat Assistant',
+        xrayAi: 'X-Ray AI',
+        reports: 'My Medical Reports'
       },
       login: {
         brand: 'HMS',
@@ -59,7 +74,56 @@ const resources = {
           nurse: 'Nurse'
         },
         networkError: 'Cannot connect to server. Please check if the backend is running.',
-        sslError: 'SSL certificate error. Please accept the certificate in your browser.'
+        sslError: 'SSL certificate error. Please accept the certificate in your browser.',
+        errors: {
+          invalidCredentials: 'Incorrect email or password',
+          serverConnection: 'Connection error. Make sure the server is running.',
+          sslCertificate: 'SSL certificate error',
+          accountNotFound: 'No login account for this email',
+          accountHint: 'Check your email or create a new account',
+          generic: 'An error occurred during login'
+        },
+        passwordReset: {
+          forgot: 'Forgot password?',
+          title: 'Reset Password',
+          placeholder: 'Enter your email',
+          send: 'Send reset link',
+          sending: 'Sending…',
+          emptyEmail: 'Please enter your email to send a reset link.',
+          sent: 'A reset link has been sent to your email if the account exists.',
+          failed: 'Could not send reset link. Try again later.'
+        }
+      },
+      register: {
+        errors: {
+          failed: 'Registration failed',
+          emailTaken: 'This email is already in use',
+          invalidData: 'Invalid data submitted',
+          generic: 'An error occurred during registration'
+        }
+      },
+      xrayAi: {
+        title: 'Chest X-ray AI',
+        subtitle: 'Local Qwen2.5-VL model via FastAPI (Model/project.py). First analysis may take several minutes while the model loads.',
+        disclaimer: 'Assistive only — not a medical diagnosis. Always review with a qualified radiologist.',
+        statusReady: 'X-Ray AI service is online and model is loaded.',
+        statusReachable: 'Service is online; model loads on first analysis.',
+        statusOffline: 'X-Ray AI service is offline. Run Model/run.ps1 then refresh.',
+        dropTitle: 'Drop an X-ray image here or click to browse',
+        dropHint: 'PNG, JPEG, WebP or BMP — max 20 MB',
+        promptLabel: 'Optional instructions',
+        promptPlaceholder: 'e.g. Summarize findings and impression…',
+        analyze: 'Analyze',
+        analyzing: 'Analyzing…',
+        clear: 'Clear',
+        reportTitle: 'Report',
+        waitModel: 'Running vision model — this can take several minutes on first run…',
+        errors: {
+          notImage: 'Please choose an image file.',
+          noFile: 'Please upload an image first.',
+          serviceDown: 'Start the FastAPI service: cd Model && .\\run.ps1',
+          generic: 'Analysis failed. Check API logs and try again.'
+        }
       },
       dashboard: {
         title: 'Dashboard',
@@ -82,6 +146,24 @@ const resources = {
         doctors: 'Doctors',
         departments: 'Departments',
         appointments: 'Appointments',
+        staffPanel: {
+          welcome: 'Welcome back, {{name}}',
+          today: 'Today, {{date}}',
+          subtitle: 'Here is what is happening at the hospital right now.',
+          todaysAppointments: 'Today\'s Appointments',
+          availableRooms: 'Available Rooms',
+          totalPatients: 'Total Patients',
+          todaysBills: 'Bills Issued Today',
+          viewAll: 'View all',
+          manage: 'Manage'
+        },
+        errors: {
+          authRequired: 'Please login to view statistics',
+          backendDown: 'Cannot connect to server. Please ensure the backend is running.',
+          serverError: 'Server error. Please try again later.',
+          backendHint: 'Please ensure the backend is running on http://localhost:5230',
+          retry: 'Retry'
+        },
         features: {
           quickCare: {
             title: 'Quick Care',
@@ -220,6 +302,31 @@ const resources = {
           completedAppointments: 'Completed Appointments',
           overdueBills: 'Overdue Bills',
           lowStockMedicines: 'Low Stock Medicines'
+        },
+        highlights: {
+          revenueTotal: 'Total Revenue',
+          revenueTotalHint: 'Lifetime paid bills',
+          revenueMonth: 'This Month',
+          revenueMonthHint: 'Collected since month start',
+          revenuePending: 'Pending Revenue',
+          revenuePendingHint: 'Outstanding on open bills',
+          todayAppointments: "Today's Appointments",
+          todayAppointmentsHint: 'Scheduled for today'
+        },
+        insights: {
+          title: 'Performance Insights',
+          desc: 'Revenue, today\'s activity, status mix and a 6-month appointment trend.',
+          statusTitle: 'Appointments by status',
+          statusSubtitle: 'Distribution across the full schedule',
+          topDeptsTitle: 'Top departments',
+          topDeptsSubtitle: 'Ranked by total appointments',
+          trendTitle: 'Appointment trend (last 6 months)',
+          trendSubtitle: 'Volume by month',
+          todayTitle: "Today's pulse",
+          todaySubtitle: 'Live snapshot of activity',
+          newPatients: 'New patients',
+          billsIssued: 'Bills issued',
+          empty: 'No data available yet.'
         },
         failed: 'Failed to load stats',
         loading: 'Loading dashboard…'
@@ -621,7 +728,20 @@ const resources = {
         myBills: 'فواتيري',
         unit: 'وحدة',
         currency: 'جنيه',
-        select: 'اختر...'
+        select: 'اختر...',
+        pageMeta: 'صفحة {{page}} من {{totalPages}} · {{total}} إجمالاً',
+        noResults: 'لا توجد نتائج',
+        previousPage: 'الصفحة السابقة',
+        nextPage: 'الصفحة التالية',
+        roles: {
+          admin: 'مدير النظام',
+          doctor: 'طبيب',
+          nurse: 'ممرض/ممرضة',
+          pharmacist: 'صيدلي',
+          staff: 'موظف',
+          patient: 'مريض',
+          guest: 'زائر'
+        }
       },
       sidebar: {
         dashboard: 'الرئيسية',
@@ -633,7 +753,9 @@ const resources = {
         rooms: 'الغرف',
         medicines: 'الأدوية',
         nursing: 'التمريض',
-        chatbot: 'المساعد الذكي'
+        chatbot: 'المساعد الذكي',
+        xrayAi: 'أشعة بالذكاء الاصطناعي',
+        reports: 'تقاريري الطبية'
       },
       login: {
         brand: 'HMS',
@@ -653,7 +775,56 @@ const resources = {
           nurse: 'ممرض/ممرضة'
         },
         networkError: 'لا يمكن الاتصال بالخادم. يرجى التأكد من عمل الخلفية.',
-        sslError: 'خطأ شهادة SSL. يرجى قبول الشهادة في متصفحك.'
+        sslError: 'خطأ شهادة SSL. يرجى قبول الشهادة في متصفحك.',
+        errors: {
+          invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+          serverConnection: 'خطأ في الاتصال بالخادم. تأكد من تشغيل الخادم',
+          sslCertificate: 'خطأ في شهادة SSL',
+          accountNotFound: 'لا يوجد حساب دخول لهذا البريد',
+          accountHint: 'تأكد من البريد، أو أنشئ حساباً جديداً',
+          generic: 'حدث خطأ أثناء تسجيل الدخول'
+        },
+        passwordReset: {
+          forgot: 'نسيت كلمة المرور؟',
+          title: 'إعادة تعيين كلمة المرور',
+          placeholder: 'أدخل بريدك الإلكتروني',
+          send: 'أرسل رابط إعادة التعيين',
+          sending: 'جارٍ الإرسال...',
+          emptyEmail: 'رجاءً أدخل البريد الإلكتروني لإرسال رابط إعادة التعيين.',
+          sent: 'تم إرسال رابط إعادة التعيين إلى بريدك إذا كان الحساب موجوداً.',
+          failed: 'تعذر إرسال رابط إعادة التعيين. حاول لاحقاً.'
+        }
+      },
+      register: {
+        errors: {
+          failed: 'فشل التسجيل',
+          emailTaken: 'البريد الإلكتروني مستخدم بالفعل',
+          invalidData: 'خطأ في البيانات المدخلة',
+          generic: 'حدث خطأ أثناء التسجيل'
+        }
+      },
+      xrayAi: {
+        title: 'تحليل أشعة الصدر',
+        subtitle: 'نموذج Qwen2.5-VL محلي عبر FastAPI (Model/project.py). أول تحليل قد يستغرق دقائق لتحميل النموذج.',
+        disclaimer: 'للمساعدة فقط — وليس تشخيصاً طبياً. راجع النتائج مع أخصائي أشعة.',
+        statusReady: 'خدمة الأشعة متصلة والنموذج جاهز.',
+        statusReachable: 'الخدمة متصلة؛ النموذج يُحمّل عند أول تحليل.',
+        statusOffline: 'خدمة الأشعة غير متصلة. شغّل Model/run.ps1 ثم حدّث الصفحة.',
+        dropTitle: 'اسحب صورة الأشعة هنا أو انقر للاختيار',
+        dropHint: 'PNG أو JPEG أو WebP أو BMP — بحد أقصى 20 ميجابايت',
+        promptLabel: 'تعليمات اختيارية',
+        promptPlaceholder: 'مثال: لخّص النتائج والانطباع…',
+        analyze: 'تحليل',
+        analyzing: 'جاري التحليل…',
+        clear: 'مسح',
+        reportTitle: 'التقرير',
+        waitModel: 'تشغيل نموذج الرؤية — قد يستغرق عدة دقائق في أول مرة…',
+        errors: {
+          notImage: 'يرجى اختيار ملف صورة.',
+          noFile: 'يرجى رفع صورة أولاً.',
+          serviceDown: 'شغّل خدمة FastAPI: cd Model ثم .\\run.ps1',
+          generic: 'فشل التحليل. راجع سجلات الـ API وحاول مرة أخرى.'
+        }
       },
       dashboard: {
         title: 'لوحة المتابعة',
@@ -676,6 +847,24 @@ const resources = {
         doctors: 'أطباء',
         departments: 'أقسام',
         appointments: 'مواعيد',
+        staffPanel: {
+          welcome: 'أهلاً بعودتك، {{name}}',
+          today: 'اليوم، {{date}}',
+          subtitle: 'دي حالة المستشفى دلوقتي.',
+          todaysAppointments: 'مواعيد اليوم',
+          availableRooms: 'الغرف المتاحة',
+          totalPatients: 'إجمالي المرضى',
+          todaysBills: 'فواتير صدرت اليوم',
+          viewAll: 'عرض الكل',
+          manage: 'إدارة'
+        },
+        errors: {
+          authRequired: 'يجب تسجيل الدخول لعرض الإحصائيات',
+          backendDown: 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الباك إند.',
+          serverError: 'خطأ في الخادم. يرجى المحاولة لاحقاً.',
+          backendHint: 'تأكد من أن الباك إند يعمل على http://localhost:5230',
+          retry: 'إعادة المحاولة'
+        },
         features: {
           quickCare: {
             title: 'رعاية سريعة',
@@ -814,6 +1003,31 @@ const resources = {
           completedAppointments: 'مواعيد مكتملة',
           overdueBills: 'فواتير متأخرة',
           lowStockMedicines: 'أدوية قليلة المخزون'
+        },
+        highlights: {
+          revenueTotal: 'إجمالي الإيرادات',
+          revenueTotalHint: 'الفواتير المسددة الكلية',
+          revenueMonth: 'إيرادات الشهر',
+          revenueMonthHint: 'المحصل منذ بداية الشهر',
+          revenuePending: 'الإيرادات المستحقة',
+          revenuePendingHint: 'فواتير لم تُسدد بعد',
+          todayAppointments: 'مواعيد اليوم',
+          todayAppointmentsHint: 'الحجوزات المجدولة اليوم'
+        },
+        insights: {
+          title: 'مؤشرات الأداء',
+          desc: 'الإيرادات ونشاط اليوم وتوزيع الحالات واتجاه آخر 6 أشهر.',
+          statusTitle: 'المواعيد حسب الحالة',
+          statusSubtitle: 'توزيع شامل للمواعيد',
+          topDeptsTitle: 'أكثر الأقسام نشاطاً',
+          topDeptsSubtitle: 'مرتبة حسب عدد المواعيد',
+          trendTitle: 'اتجاه المواعيد (آخر 6 أشهر)',
+          trendSubtitle: 'الحجم الشهري',
+          todayTitle: 'نبض اليوم',
+          todaySubtitle: 'لقطة فورية للنشاط',
+          newPatients: 'مرضى جدد',
+          billsIssued: 'فواتير صادرة',
+          empty: 'لا توجد بيانات حالياً.'
         },
         failed: 'فشل تحميل الإحصاءات',
         loading: 'جارٍ تحميل اللوحة…'

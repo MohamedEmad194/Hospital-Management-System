@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchBill, payBill } from '../api/bills';
 import { createStripeSession, createPayPalOrder, createPaymobOrder } from '../api/payment';
-import { AuthContext } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 export default function Payment() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { t, i18n } = useTranslation();
-    const { user } = useContext(AuthContext);
+    const { i18n } = useTranslation();
     const [bill, setBill] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
@@ -19,11 +17,7 @@ export default function Payment() {
 
     const isArabic = i18n.language === 'ar';
 
-    useEffect(() => {
-        loadBill();
-    }, [id]);
-
-    const loadBill = async () => {
+    const loadBill = useCallback(async () => {
         try {
             setLoading(true);
             const billData = await fetchBill(id);
@@ -34,7 +28,11 @@ export default function Payment() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => {
+        loadBill();
+    }, [loadBill]);
 
     const handlePayment = async () => {
         if (!bill) return;

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Hospital_Management_System.Configuration;
 using Hospital_Management_System.Models;
 
 namespace Hospital_Management_System.Data
@@ -19,30 +20,43 @@ namespace Hospital_Management_System.Data
             }
         }
 
-        public static async Task SeedAdminUserAsync(UserManager<User> userManager)
+        public static async Task SeedAdminUserAsync(
+            UserManager<User> userManager,
+            IConfiguration configuration,
+            Microsoft.Extensions.Logging.ILogger logger,
+            bool isDevelopment)
         {
             var adminEmail = "admin@hospital.com";
             var adminUser = await userManager.FindByEmailAsync(adminEmail);
 
-            if (adminUser == null)
-            {
-                adminUser = new User
-                {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    FirstName = "System",
-                    LastName = "Administrator",
-                    NationalId = "0000000000",
-                    PhoneNumber = "1234567890",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
+            if (adminUser != null)
+                return;
 
-                var result = await userManager.CreateAsync(adminUser, "Admin@123");
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                }
+            var password = SeedPasswordProvider.ResolveForProvisioning(
+                configuration, "Admin", logger, allowGeneratedInDevelopment: true, isDevelopment);
+            if (string.IsNullOrEmpty(password))
+                return;
+
+            adminUser = new User
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FirstName = "System",
+                LastName = "Administrator",
+                NationalId = "0000000000",
+                PhoneNumber = "1234567890",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(adminUser, password);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+            else
+            {
+                logger.LogWarning("Admin seed failed: {Errors}", string.Join("; ", result.Errors.Select(e => e.Description)));
             }
         }
 
@@ -55,190 +69,190 @@ namespace Hospital_Management_System.Data
                 new Department
                 {
                     Name = "Cardiology",
-                    Description = "متخصص في علاج أمراض القلب والأوعية الدموية، تشخيص وعلاج حالات القلب، فحوصات القلب، قسطرة القلب، وجراحات القلب المفتوح",
-                    HeadOfDepartment = "د. أحمد حسن",
+                    Description = "Specialized in diagnosing and treating cardiovascular diseases, heart catheterization, open-heart surgery and advanced cardiac care.",
+                    HeadOfDepartment = "Dr. Ahmed Hassan",
                     PhoneNumber = "02-1234-5670",
-                    Location = "الطابق الثاني - المبنى الرئيسي (A)",
+                    Location = "Second Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Neurology",
-                    Description = "متخصص في علاج أمراض الجهاز العصبي والدماغ، تشخيص وعلاج الصرع، السكتة الدماغية، أمراض الأعصاب، والصداع المزمن",
-                    HeadOfDepartment = "د. سارة محمد",
+                    Description = "Specialized in neurological and brain disorders including epilepsy, stroke, chronic headache and nerve diseases.",
+                    HeadOfDepartment = "Dr. Sarah Mohamed",
                     PhoneNumber = "02-1234-5671",
-                    Location = "الطابق الثالث - المبنى الرئيسي (A)",
+                    Location = "Third Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Orthopedics",
-                    Description = "متخصص في علاج أمراض العظام والمفاصل، جراحات العظام، استبدال المفاصل، كسور العظام، وإصابات الرياضة",
-                    HeadOfDepartment = "د. عمر علي",
+                    Description = "Bone, joint and musculoskeletal care including joint replacement, fracture care and sports injuries.",
+                    HeadOfDepartment = "Dr. Omar Ali",
                     PhoneNumber = "02-1234-5672",
-                    Location = "الطابق الأول - المبنى الجراحي (B)",
+                    Location = "First Floor - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Pediatrics",
-                    Description = "رعاية طبية متخصصة للأطفال والرضع، تشخيص وعلاج أمراض الأطفال، التطعيمات، ومتابعة نمو الأطفال",
-                    HeadOfDepartment = "د. فاطمة أحمد",
+                    Description = "Specialized medical care for infants and children, including vaccinations, growth monitoring and pediatric disease management.",
+                    HeadOfDepartment = "Dr. Fatima Ahmed",
                     PhoneNumber = "02-1234-5673",
-                    Location = "الطابق الثاني - المبنى الجراحي (B)",
+                    Location = "Second Floor - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Emergency",
-                    Description = "قسم الطوارئ والرعاية الطبية العاجلة، استقبال حالات الطوارئ على مدار 24 ساعة، علاج الحوادث، والإصابات الخطيرة",
-                    HeadOfDepartment = "د. خالد إبراهيم",
+                    Description = "24/7 emergency and critical care services for accidents, trauma and acute medical conditions.",
+                    HeadOfDepartment = "Dr. Khaled Ibrahim",
                     PhoneNumber = "02-1234-5674",
-                    Location = "الطابق الأرضي - المبنى الرئيسي (A)",
+                    Location = "Ground Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Oncology",
-                    Description = "متخصص في تشخيص وعلاج الأورام والسرطان، العلاج الكيميائي، العلاج الإشعاعي، وجراحات الأورام",
-                    HeadOfDepartment = "د. منى السيد",
+                    Description = "Diagnosis and treatment of tumors and cancer including chemotherapy, radiotherapy and surgical oncology.",
+                    HeadOfDepartment = "Dr. Mona Elsayed",
                     PhoneNumber = "02-1234-5675",
-                    Location = "الطابق الرابع - المبنى الرئيسي (A)",
+                    Location = "Fourth Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Radiology",
-                    Description = "خدمات التشخيص بالإشعة، الأشعة السينية، التصوير بالرنين المغناطيسي (MRI)، التصوير المقطعي (CT)، والموجات فوق الصوتية",
-                    HeadOfDepartment = "د. هشام فاروق",
+                    Description = "Diagnostic imaging services including X-ray, MRI, CT scan and ultrasound.",
+                    HeadOfDepartment = "Dr. Hesham Farouk",
                     PhoneNumber = "02-1234-5676",
-                    Location = "البدروم - المبنى الرئيسي (A)",
+                    Location = "Basement - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Dermatology",
-                    Description = "متخصص في علاج أمراض الجلد والشعر والأظافر، علاج البشرة، الأمراض الجلدية المزمنة، وإجراءات التجميل الطبي",
-                    HeadOfDepartment = "د. رانيا مصطفى",
+                    Description = "Skin, hair and nail care including treatment of chronic skin conditions and medical cosmetic procedures.",
+                    HeadOfDepartment = "Dr. Rania Mostafa",
                     PhoneNumber = "02-1234-5677",
-                    Location = "الطابق الأول - المبنى الرئيسي (A)",
+                    Location = "First Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Gastroenterology",
-                    Description = "متخصص في علاج أمراض الجهاز الهضمي، تنظير المعدة والأمعاء، علاج أمراض الكبد، والمرارة، والبنكرياس",
-                    HeadOfDepartment = "د. محمد فريد",
+                    Description = "Digestive system care including endoscopy, hepatology, gallbladder and pancreatic disorders.",
+                    HeadOfDepartment = "Dr. Mohamed Farid",
                     PhoneNumber = "02-1234-5678",
-                    Location = "الطابق الثاني - المبنى الجراحي (B)",
+                    Location = "Second Floor - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Pulmonology",
-                    Description = "متخصص في علاج أمراض الجهاز التنفسي والرئة، الربو، التهاب الشعب الهوائية، أمراض الرئة المزمنة، وفحوصات وظائف الرئة",
-                    HeadOfDepartment = "د. أميرة صلاح",
+                    Description = "Respiratory and lung care including asthma, bronchitis, chronic lung diseases and pulmonary function testing.",
+                    HeadOfDepartment = "Dr. Amira Salah",
                     PhoneNumber = "02-1234-5679",
-                    Location = "الطابق الثالث - المبنى الجراحي (B)",
+                    Location = "Third Floor - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Endocrinology",
-                    Description = "متخصص في علاج أمراض الغدد الصماء والهرمونات، السكري، أمراض الغدة الدرقية، السمنة، واضطرابات النمو",
-                    HeadOfDepartment = "د. طارق نبيل",
+                    Description = "Endocrine and hormonal disorders including diabetes, thyroid disease, obesity and growth disorders.",
+                    HeadOfDepartment = "Dr. Tarek Nabil",
                     PhoneNumber = "02-1234-5680",
-                    Location = "الطابق الرابع - المبنى الجراحي (B)",
+                    Location = "Fourth Floor - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Nephrology",
-                    Description = "متخصص في علاج أمراض الكلى والمسالك البولية، الفشل الكلوي، زراعة الكلى، غسيل الكلى، وأمراض الكلى المزمنة",
-                    HeadOfDepartment = "د. ليلى كامل",
+                    Description = "Kidney and urinary tract care including renal failure, kidney transplant and dialysis services.",
+                    HeadOfDepartment = "Dr. Laila Kamel",
                     PhoneNumber = "02-1234-5681",
-                    Location = "الطابق الخامس - المبنى الرئيسي (A)",
+                    Location = "Fifth Floor - Main Building (A)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Ophthalmology",
-                    Description = "متخصص في علاج أمراض العيون والرؤية، جراحات العيون، تصحيح النظر، علاج المياه البيضاء والزرقاء، وفحوصات العيون الشاملة",
-                    HeadOfDepartment = "د. كريم شكري",
+                    Description = "Eye and vision care including eye surgery, vision correction, cataract and glaucoma treatment.",
+                    HeadOfDepartment = "Dr. Karim Shokry",
                     PhoneNumber = "02-1234-5682",
-                    Location = "الطابق الأول - المبنى الطبي (C)",
+                    Location = "First Floor - Medical Building (C)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "ENT",
-                    Description = "متخصص في علاج أمراض الأنف والأذن والحنجرة، جراحات الأذن، مشاكل السمع، التهاب الجيوب الأنفية، وجراحات الحنجرة",
-                    HeadOfDepartment = "د. نهى سمير",
+                    Description = "Ear, nose and throat care including hearing problems, sinusitis and laryngeal surgery.",
+                    HeadOfDepartment = "Dr. Noha Samir",
                     PhoneNumber = "02-1234-5683",
-                    Location = "الطابق الثاني - المبنى الطبي (C)",
+                    Location = "Second Floor - Medical Building (C)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Urology",
-                    Description = "متخصص في علاج أمراض الجهاز البولي والجهاز التناسلي الذكري، حصوات الكلى، تضخم البروستاتا، وجراحات المسالك البولية",
-                    HeadOfDepartment = "د. وائل عطية",
+                    Description = "Urinary system and male reproductive care including kidney stones, prostate enlargement and urological surgery.",
+                    HeadOfDepartment = "Dr. Wael Attia",
                     PhoneNumber = "02-1234-5684",
-                    Location = "الطابق الثالث - المبنى الطبي (C)",
+                    Location = "Third Floor - Medical Building (C)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Gynecology",
-                    Description = "رعاية صحية متخصصة للنساء، أمراض النساء، الفحوصات الدورية، الولادة، والعقم",
-                    HeadOfDepartment = "د. ريهام الزهراء",
+                    Description = "Specialized women's healthcare including routine exams, childbirth and infertility treatment.",
+                    HeadOfDepartment = "Dr. Reham Elzahraa",
                     PhoneNumber = "02-1234-5685",
-                    Location = "الطابق الرابع - المبنى الطبي (C)",
+                    Location = "Fourth Floor - Medical Building (C)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Psychiatry",
-                    Description = "متخصص في علاج الأمراض النفسية والصحة العقلية، الاكتئاب، القلق، الاضطرابات النفسية، والاستشارات النفسية",
-                    HeadOfDepartment = "د. سمير أبو الفتوح",
+                    Description = "Mental health care including depression, anxiety, psychiatric disorders and counseling services.",
+                    HeadOfDepartment = "Dr. Samir Aboelfotouh",
                     PhoneNumber = "02-1234-5686",
-                    Location = "الطابق الخامس - المبنى الطبي (C)",
+                    Location = "Fifth Floor - Medical Building (C)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Anesthesiology",
-                    Description = "خدمات التخدير وإدارة الألم، تخدير الجراحات، وحدة العناية المركزة، وإدارة الألم المزمن",
-                    HeadOfDepartment = "د. هاني عبد المنعم",
+                    Description = "Anesthesia and pain management including surgical anesthesia, ICU support and chronic pain treatment.",
+                    HeadOfDepartment = "Dr. Hany Abdelmoneim",
                     PhoneNumber = "02-1234-5687",
-                    Location = "الطابق الأول - المبنى الجراحي (D)",
+                    Location = "First Floor - Surgical Building (D)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 },
                 new Department
                 {
                     Name = "Pathology",
-                    Description = "خدمات المختبرات الطبية والتشخيص المخبري، تحاليل الدم، تحاليل الأنسجة، علم الأمراض، والفحوصات المخبرية الشاملة",
-                    HeadOfDepartment = "د. مجدة الشربيني",
+                    Description = "Medical laboratory and diagnostic services including blood, tissue, histopathology and comprehensive lab testing.",
+                    HeadOfDepartment = "Dr. Magda Elsherbini",
                     PhoneNumber = "02-1234-5688",
-                    Location = "البدروم - المبنى الجراحي (B)",
+                    Location = "Basement - Surgical Building (B)",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 }
@@ -1499,21 +1513,21 @@ namespace Hospital_Management_System.Data
                 {
                     new Doctor
                     {
-                        FirstName = "أحمد",
-                        LastName = "حسن",
+                        FirstName = "Ahmed",
+                        LastName = "Hassan",
                         NationalId = "2111111111",
                         Email = "ahmed.hassan@hospital.com",
                         PhoneNumber = "01001234567",
                         DateOfBirth = new DateTime(1980, 3, 20),
                         Gender = "Male",
-                        Address = "الطابق الثاني - المبنى الرئيسي (A)",
+                        Address = "Second Floor - Main Building (A)",
                         LicenseNumber = "LIC-CARD-001",
                         Specialization = "Cardiology",
-                        SubSpecialization = "قسطرة القلب التداخلية",
+                        SubSpecialization = "Interventional Cardiac Catheterization",
                         YearsOfExperience = 15,
-                        Education = "دكتوراه",
-                        Certifications = "معتمد من المجلس الطبي",
-                        Languages = "العربية، الإنجليزية",
+                        Education = "PhD",
+                        Certifications = "Board Certified by the Medical Council",
+                        Languages = "Arabic, English",
                         ConsultationFee = 250,
                         WorkingHoursStart = new TimeSpan(9, 0, 0),
                         WorkingHoursEnd = new TimeSpan(17, 0, 0),
@@ -1523,21 +1537,21 @@ namespace Hospital_Management_System.Data
                     },
                     new Doctor
                     {
-                        FirstName = "سارة",
-                        LastName = "محمد",
+                        FirstName = "Sarah",
+                        LastName = "Mohamed",
                         NationalId = "2222222222",
                         Email = "sarah.mohamed@hospital.com",
                         PhoneNumber = "01002345678",
                         DateOfBirth = new DateTime(1982, 6, 12),
                         Gender = "Female",
-                        Address = "الطابق الثالث - المبنى الرئيسي (A)",
+                        Address = "Third Floor - Main Building (A)",
                         LicenseNumber = "LIC-NEURO-001",
                         Specialization = "Neurology",
-                        SubSpecialization = "طب الصرع",
+                        SubSpecialization = "Epileptology",
                         YearsOfExperience = 13,
-                        Education = "دكتوراه",
-                        Certifications = "زمالة طبية",
-                        Languages = "العربية، الإنجليزية",
+                        Education = "PhD",
+                        Certifications = "Medical Fellowship",
+                        Languages = "Arabic, English",
                         ConsultationFee = 300,
                         WorkingHoursStart = new TimeSpan(10, 0, 0),
                         WorkingHoursEnd = new TimeSpan(18, 0, 0),
@@ -1547,21 +1561,21 @@ namespace Hospital_Management_System.Data
                     },
                     new Doctor
                     {
-                        FirstName = "عمر",
-                        LastName = "علي",
+                        FirstName = "Omar",
+                        LastName = "Ali",
                         NationalId = "2333333333",
                         Email = "omar.ali@hospital.com",
                         PhoneNumber = "01003456789",
                         DateOfBirth = new DateTime(1985, 11, 5),
                         Gender = "Male",
-                        Address = "الطابق الأول - المبنى الجراحي (B)",
+                        Address = "First Floor - Surgical Building (B)",
                         LicenseNumber = "LIC-ORTHO-001",
                         Specialization = "Orthopedics",
-                        SubSpecialization = "جراحة العظام والمفاصل",
+                        SubSpecialization = "Bone & Joint Surgery",
                         YearsOfExperience = 10,
-                        Education = "ماجستير",
-                        Certifications = "شهادة تخصص",
-                        Languages = "العربية، الإنجليزية",
+                        Education = "Master's",
+                        Certifications = "Specialty Certification",
+                        Languages = "Arabic, English",
                         ConsultationFee = 220,
                         WorkingHoursStart = new TimeSpan(8, 30, 0),
                         WorkingHoursEnd = new TimeSpan(16, 30, 0),
@@ -1574,6 +1588,104 @@ namespace Hospital_Management_System.Data
                 await context.SaveChangesAsync();
             }
 
+            // Staff (Nurses, Receptionists, Lab Technicians, etc.)
+            if (!await context.Staff.AnyAsync())
+            {
+                var staffList = new[]
+                {
+                    new Staff
+                    {
+                        FirstName = "Mariam",
+                        LastName = "Ibrahim",
+                        NationalId = "2444444444",
+                        Email = "mariam.ibrahim@hospital.com",
+                        PhoneNumber = "01004567890",
+                        DateOfBirth = new DateTime(1990, 4, 18),
+                        Gender = "Female",
+                        Address = "Nasr City, Cairo, Egypt",
+                        Position = "Head Nurse",
+                        EmployeeId = "EMP-NUR-001",
+                        HireDate = new DateTime(2018, 6, 1),
+                        Salary = 8000,
+                        Qualification = "Bachelor of Nursing",
+                        Skills = "Patient care, IV insertion, Emergency response",
+                        WorkingHoursStart = new TimeSpan(8, 0, 0),
+                        WorkingHoursEnd = new TimeSpan(16, 0, 0),
+                        DepartmentId = 1,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    },
+                    new Staff
+                    {
+                        FirstName = "Karim",
+                        LastName = "Saeed",
+                        NationalId = "2555555555",
+                        Email = "karim.saeed@hospital.com",
+                        PhoneNumber = "01005678901",
+                        DateOfBirth = new DateTime(1988, 9, 25),
+                        Gender = "Male",
+                        Address = "Heliopolis, Cairo, Egypt",
+                        Position = "Receptionist",
+                        EmployeeId = "EMP-REC-001",
+                        HireDate = new DateTime(2019, 3, 15),
+                        Salary = 5500,
+                        Qualification = "Bachelor of Business Administration",
+                        Skills = "Customer service, Scheduling, Data entry",
+                        WorkingHoursStart = new TimeSpan(9, 0, 0),
+                        WorkingHoursEnd = new TimeSpan(17, 0, 0),
+                        DepartmentId = 5,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    },
+                    new Staff
+                    {
+                        FirstName = "Layla",
+                        LastName = "Rashad",
+                        NationalId = "2666666666",
+                        Email = "layla.rashad@hospital.com",
+                        PhoneNumber = "01006789012",
+                        DateOfBirth = new DateTime(1992, 12, 3),
+                        Gender = "Female",
+                        Address = "Maadi, Cairo, Egypt",
+                        Position = "Lab Technician",
+                        EmployeeId = "EMP-LAB-001",
+                        HireDate = new DateTime(2020, 1, 10),
+                        Salary = 6500,
+                        Qualification = "Bachelor of Medical Laboratory Sciences",
+                        Skills = "Blood analysis, Microscopy, Lab equipment operation",
+                        WorkingHoursStart = new TimeSpan(8, 0, 0),
+                        WorkingHoursEnd = new TimeSpan(16, 0, 0),
+                        DepartmentId = 7,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    },
+                    new Staff
+                    {
+                        FirstName = "Tarek",
+                        LastName = "Nabil",
+                        NationalId = "2777777777",
+                        Email = "tarek.nabil@hospital.com",
+                        PhoneNumber = "01007890123",
+                        DateOfBirth = new DateTime(1985, 7, 14),
+                        Gender = "Male",
+                        Address = "Zamalek, Cairo, Egypt",
+                        Position = "Pharmacist",
+                        EmployeeId = "EMP-PHA-001",
+                        HireDate = new DateTime(2017, 9, 1),
+                        Salary = 9000,
+                        Qualification = "Bachelor of Pharmacy",
+                        Skills = "Drug dispensing, Patient counseling, Inventory management",
+                        WorkingHoursStart = new TimeSpan(9, 0, 0),
+                        WorkingHoursEnd = new TimeSpan(17, 0, 0),
+                        DepartmentId = 5,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    }
+                };
+                context.Staff.AddRange(staffList);
+                await context.SaveChangesAsync();
+            }
+
             // Patients
             if (!await context.Patients.AnyAsync())
             {
@@ -1581,38 +1693,38 @@ namespace Hospital_Management_System.Data
                 {
                     new Patient
                     {
-                        FirstName = "محمد",
-                        LastName = "يوسف",
+                        FirstName = "Mohamed",
+                        LastName = "Youssef",
                         NationalId = "2987654321",
-                        Email = "mohamed.youssef@example.com",
+                        Email = "mohamed.youssef@hospital.com",
                         PhoneNumber = "01123456789",
                         DateOfBirth = new DateTime(1985, 5, 15),
                         Gender = "Male",
-                        Address = "شارع النيل، القاهرة، مصر",
-                        EmergencyContactName = "أحمد يوسف",
+                        Address = "Nile Street, Cairo, Egypt",
+                        EmergencyContactName = "Ahmed Youssef",
                         EmergencyContactPhone = "01234567890",
-                        InsuranceProvider = "شركة التأمين الصحي",
+                        InsuranceProvider = "National Health Insurance",
                         InsuranceNumber = "INS-0001",
-                        MedicalHistory = "لا توجد أمراض مزمنة",
+                        MedicalHistory = "No chronic conditions",
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     },
                     new Patient
                     {
-                        FirstName = "سلمى",
-                        LastName = "خالد",
+                        FirstName = "Salma",
+                        LastName = "Khaled",
                         NationalId = "2876543210",
-                        Email = "salma.khaled@example.com",
+                        Email = "salma.khaled@hospital.com",
                         PhoneNumber = "01198765432",
                         DateOfBirth = new DateTime(1992, 3, 10),
                         Gender = "Female",
-                        Address = "شارع التحرير، الجيزة، مصر",
-                        EmergencyContactName = "خالد خالد",
+                        Address = "Tahrir Street, Giza, Egypt",
+                        EmergencyContactName = "Khaled Mahmoud",
                         EmergencyContactPhone = "01298765432",
-                        InsuranceProvider = "التأمين الصحي الشامل",
+                        InsuranceProvider = "Comprehensive Health Insurance",
                         InsuranceNumber = "INS-0002",
-                        Allergies = "بنسلين",
-                        MedicalHistory = "لا توجد أمراض مزمنة",
+                        Allergies = "Penicillin",
+                        MedicalHistory = "No chronic conditions",
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     }
@@ -1797,56 +1909,56 @@ namespace Hospital_Management_System.Data
                 {
                     new Patient
                     {
-                        FirstName = "حسن",
-                        LastName = "محمود",
+                        FirstName = "Hassan",
+                        LastName = "Mahmoud",
                         NationalId = "2765432109",
-                        Email = "hassan.mahmoud@example.com",
+                        Email = "hassan.mahmoud@hospital.com",
                         PhoneNumber = "01134567890",
                         DateOfBirth = new DateTime(1978, 9, 1),
                         Gender = "Male",
-                        Address = "شارع كورنيش النيل، الإسكندرية، مصر",
-                        EmergencyContactName = "أخ - حسن",
+                        Address = "Corniche El Nil Street, Alexandria, Egypt",
+                        EmergencyContactName = "Brother - Hassan",
                         EmergencyContactPhone = "01234567891",
-                        InsuranceProvider = "تأمين الصحة العامة",
+                        InsuranceProvider = "Public Health Insurance",
                         InsuranceNumber = "INS-0003",
-                        MedicalHistory = "ضغط الدم",
+                        MedicalHistory = "Hypertension",
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     },
                     new Patient
                     {
-                        FirstName = "نورا",
-                        LastName = "عادل",
+                        FirstName = "Nora",
+                        LastName = "Adel",
                         NationalId = "2654321098",
-                        Email = "nora.adel@example.com",
+                        Email = "nora.adel@hospital.com",
                         PhoneNumber = "01145678901",
                         DateOfBirth = new DateTime(1995, 1, 22),
                         Gender = "Female",
-                        Address = "شارع المعادي، القاهرة، مصر",
-                        EmergencyContactName = "أخت - نورا",
+                        Address = "Maadi Street, Cairo, Egypt",
+                        EmergencyContactName = "Sister - Nora",
                         EmergencyContactPhone = "01245678902",
-                        InsuranceProvider = "شركة التأمين الصحي",
+                        InsuranceProvider = "National Health Insurance",
                         InsuranceNumber = "INS-0004",
-                        Allergies = "أيبوبروفين",
-                        MedicalHistory = "لا توجد أمراض مزمنة",
+                        Allergies = "Ibuprofen",
+                        MedicalHistory = "No chronic conditions",
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     },
                     new Patient
                     {
-                        FirstName = "يسرى",
-                        LastName = "فؤاد",
+                        FirstName = "Yasmine",
+                        LastName = "Fouad",
                         NationalId = "2543210987",
-                        Email = "yasmine.fouad@example.com",
+                        Email = "yasmine.fouad@hospital.com",
                         PhoneNumber = "01156789012",
                         DateOfBirth = new DateTime(2001, 7, 30),
                         Gender = "Female",
-                        Address = "شارع الهرم، الجيزة، مصر",
-                        EmergencyContactName = "أم - يسرى",
+                        Address = "Pyramid Street, Giza, Egypt",
+                        EmergencyContactName = "Mother - Yasmine",
                         EmergencyContactPhone = "01256789013",
                         InsuranceProvider = null,
                         InsuranceNumber = null,
-                        MedicalHistory = "لا توجد أمراض مزمنة",
+                        MedicalHistory = "No chronic conditions",
                         CreatedAt = DateTime.UtcNow,
                         IsActive = true
                     }
@@ -1912,14 +2024,14 @@ namespace Hospital_Management_System.Data
 
             // Bulk generate dataset: more doctors, patients, appointments, prescriptions, bills
             // Target sizes
-            int targetDoctorsPerDepartment = 5;
-            int targetPatients = 120;
-            int targetAppointments = 150;
+            int targetDoctorsPerDepartment = 8;
+            int targetPatients = 300;
+            int targetAppointments = 500;
 
-            // Ensure more doctors per department (with realistic Arabic names)
-            var maleFirstNames = new[] { "أحمد", "عمر", "خالد", "حسن", "مصطفى", "يوسف", "حسام", "إبراهيم", "طارق", "محمود", "فاروق", "سامي" };
-            var femaleFirstNames = new[] { "سارة", "منى", "رانيا", "فاطمة", "نور", "يسرى", "هدى", "ليلى", "أميرة", "نادية", "مريم", "ريهام" };
-            var lastNames = new[] { "حسن", "إبراهيم", "محمود", "السيد", "مصطفى", "عبدالرحمن", "خالد", "علي", "فاروق", "عطية", "شكري", "كامل" };
+            // Ensure more doctors per department (with English names)
+            var maleFirstNames = new[] { "Ahmed", "Omar", "Khaled", "Hassan", "Mostafa", "Youssef", "Hossam", "Ibrahim", "Tarek", "Mahmoud", "Farouk", "Sami" };
+            var femaleFirstNames = new[] { "Sarah", "Mona", "Rania", "Fatima", "Nour", "Yasmine", "Hoda", "Laila", "Amira", "Nadia", "Mariam", "Reham" };
+            var lastNames = new[] { "Hassan", "Ibrahim", "Mahmoud", "Elsayed", "Mostafa", "Abdelrahman", "Khaled", "Ali", "Farouk", "Attia", "Shokry", "Kamel" };
 
             var allDepartments = await context.Departments.AsNoTracking().ToListAsync();
             foreach (var dept in allDepartments)
@@ -1931,28 +2043,26 @@ namespace Hospital_Management_System.Data
                     bool isMale = i % 2 == 0;
                     var first = isMale ? maleFirstNames[i % maleFirstNames.Length] : femaleFirstNames[i % femaleFirstNames.Length];
                     var last = lastNames[(i + dept.Id) % lastNames.Length];
-                    var email = $"{first.ToLower()}.{last.ToLower()}.{dept.Id}{i}@hospital.com";
+                    var educationLevels = new[] { "PhD", "Master's", "Bachelor's" };
+                    var certifications = new[] { "Board Certified by the Medical Council", "Medical Fellowship", "Specialty Certification", "Medical Board" };
 
-                    var educationLevels = new[] { "دكتوراه", "ماجستير", "بكالوريوس" };
-                    var certifications = new[] { "معتمد من المجلس الطبي", "زمالة طبية", "شهادة تخصص", "بورد طبي" };
-                    
                     newDoctors.Add(new Doctor
                     {
                         FirstName = first,
                         LastName = last,
                         NationalId = $"2{(dept.Id * 1000000 + i * 10000) % 1000000000:000000000}",
-                        Email = $"{first.ToLower().Replace(" ", "")}.{last.ToLower().Replace(" ", "")}.{dept.Id}{i}@hospital.com",
+                        Email = SampleEmailHelper.DoctorEmailForSeed(dept.Id, i),
                         PhoneNumber = $"010{dept.Id}{(i % 1000000):0000000}",
                         DateOfBirth = new DateTime(1965, 1, 1).AddDays((dept.Id * 50) + i * 30),
                         Gender = isMale ? "Male" : "Female",
                         Address = dept.Location,
                         LicenseNumber = $"LIC-{dept.Name.ToUpper().Replace(" ", string.Empty)}-{i:000}",
                         Specialization = dept.Name,
-                        SubSpecialization = i % 3 == 0 ? "تخصص فرعي" : null,
+                        SubSpecialization = i % 3 == 0 ? "Subspecialty" : null,
                         YearsOfExperience = 5 + (i % 25),
                         Education = educationLevels[i % educationLevels.Length],
                         Certifications = certifications[i % certifications.Length],
-                        Languages = i % 2 == 0 ? "العربية، الإنجليزية" : "العربية، الإنجليزية، الفرنسية",
+                        Languages = i % 2 == 0 ? "Arabic, English" : "Arabic, English, French",
                         ConsultationFee = 150 + (i * 15),
                         WorkingHoursStart = new TimeSpan(9 + (i % 2), 0, 0),
                         WorkingHoursEnd = new TimeSpan(17 + (i % 2), 0, 0),
@@ -1968,43 +2078,43 @@ namespace Hospital_Management_System.Data
                 }
             }
 
-            // Ensure more patients - Generate realistic Arabic names
+            // Ensure more patients - Generate realistic English names
             int currentPatients = await context.Patients.CountAsync();
             if (currentPatients < targetPatients)
             {
-                var patientMaleFirstNames = new[] { "محمد", "أحمد", "علي", "خالد", "محمود", "يوسف", "حسام", "إبراهيم", "عمر", "طارق", "مصطفى", "عبدالله", "حسن", "سامي", "فاروق" };
-                var patientFemaleFirstNames = new[] { "سارة", "فاطمة", "مريم", "نورا", "ريم", "يسرى", "هدى", "ليلى", "سلمى", "نادية", "أميرة", "رانيا", "منى", "هند", "أسماء" };
-                var patientLastNames = new[] { "محمد", "علي", "حسن", "إبراهيم", "محمود", "السيد", "مصطفى", "عبدالرحمن", "خالد", "يوسف", "فاروق", "عطية", "شكري", "كامل", "صلاح" };
-                var cities = new[] { "القاهرة", "الجيزة", "الإسكندرية", "المنصورة", "طنطا", "أسيوط", "سوهاج", "الأقصر", "أسوان", "بورسعيد", "الإسماعيلية", "السويس" };
-                var streets = new[] { "شارع النيل", "شارع التحرير", "شارع كورنيش النيل", "شارع الهرم", "شارع المعادي", "شارع مصر الجديدة", "شارع الزمالك", "شارع المعادي" };
-                
+                var patientMaleFirstNames = new[] { "Mohamed", "Ahmed", "Ali", "Khaled", "Mahmoud", "Youssef", "Hossam", "Ibrahim", "Omar", "Tarek", "Mostafa", "Abdullah", "Hassan", "Sami", "Farouk" };
+                var patientFemaleFirstNames = new[] { "Sarah", "Fatima", "Mariam", "Nora", "Reem", "Yasmine", "Hoda", "Laila", "Salma", "Nadia", "Amira", "Rania", "Mona", "Hend", "Asmaa" };
+                var patientLastNames = new[] { "Mohamed", "Ali", "Hassan", "Ibrahim", "Mahmoud", "Elsayed", "Mostafa", "Abdelrahman", "Khaled", "Youssef", "Farouk", "Attia", "Shokry", "Kamel", "Salah" };
+                var cities = new[] { "Cairo", "Giza", "Alexandria", "Mansoura", "Tanta", "Assiut", "Sohag", "Luxor", "Aswan", "Port Said", "Ismailia", "Suez" };
+                var streets = new[] { "Nile Street", "Tahrir Street", "Corniche El Nil Street", "Pyramid Street", "Maadi Street", "Heliopolis Street", "Zamalek Street", "Mohandessin Street" };
+
                 var addPatients = new List<Patient>();
                 for (int i = currentPatients + 1; i <= targetPatients; i++)
                 {
                     bool isMale = i % 2 == 0;
-                    var firstName = isMale 
-                        ? patientMaleFirstNames[i % patientMaleFirstNames.Length] 
+                    var firstName = isMale
+                        ? patientMaleFirstNames[i % patientMaleFirstNames.Length]
                         : patientFemaleFirstNames[i % patientFemaleFirstNames.Length];
                     var lastName = patientLastNames[(i * 3) % patientLastNames.Length];
                     var city = cities[i % cities.Length];
                     var street = streets[i % streets.Length];
-                    var address = $"{street}، {city}، مصر";
-                    
-                    var insuranceProviders = new[] { "شركة التأمين الصحي", "التأمين الصحي الشامل", "تأمين الصحة العامة", "تأمين القطاع الخاص", null };
-                    var medicalHistories = new[] { "سكري", "ضغط الدم", "أمراض القلب", "أمراض الكلى", "أمراض الرئة", "لا توجد أمراض مزمنة", null };
-                    var allergies = new[] { "بنسلين", "أسبرين", "أيبوبروفين", "لا توجد حساسية", null };
-                    
+                    var address = $"{street}, {city}, Egypt";
+
+                    var insuranceProviders = new[] { "National Health Insurance", "Comprehensive Health Insurance", "Public Health Insurance", "Private Sector Insurance", null };
+                    var medicalHistories = new[] { "Diabetes", "Hypertension", "Heart Disease", "Kidney Disease", "Lung Disease", "No chronic conditions", null };
+                    var allergies = new[] { "Penicillin", "Aspirin", "Ibuprofen", "No known allergies", null };
+
                     addPatients.Add(new Patient
                     {
                         FirstName = firstName,
                         LastName = lastName,
                         NationalId = $"2{(i % 1000000000):000000000}",
-                        Email = $"{firstName.ToLower().Replace(" ", "")}.{lastName.ToLower().Replace(" ", "")}{i}@example.com",
+                        Email = SampleEmailHelper.PatientEmailForSeed(i),
                         PhoneNumber = $"01{(i % 10)}{(i % 10000000):00000000}",
                         DateOfBirth = new DateTime(1950, 1, 1).AddDays(i * 100 % 20000),
                         Gender = isMale ? "Male" : "Female",
                         Address = address,
-                        EmergencyContactName = isMale ? $"أخ - {firstName}" : $"أخت - {firstName}",
+                        EmergencyContactName = isMale ? $"Brother - {firstName}" : $"Sister - {firstName}",
                         EmergencyContactPhone = $"01{(i % 10)}{(i % 10000000 + 10000000):00000000}",
                         InsuranceProvider = insuranceProviders[i % insuranceProviders.Length],
                         InsuranceNumber = insuranceProviders[i % insuranceProviders.Length] != null ? $"INS-{i:00000}" : null,
@@ -2069,12 +2179,12 @@ namespace Hospital_Management_System.Data
 
             // Prescriptions bulk (for a subset of appointments)
             int existingPrescriptions = await context.Prescriptions.CountAsync();
-            if (existingPrescriptions < 80)
+            if (existingPrescriptions < 200)
             {
                 var apptInfos = await context.Appointments
                     .OrderByDescending(a => a.AppointmentDate)
                     .Select(a => new { a.Id, a.PatientId, a.DoctorId, a.Status })
-                    .Take(120)
+                    .Take(400)
                     .ToListAsync();
 
                 var meds = await context.Medicines.Select(m => new { m.Id, m.Name, m.Price }).ToListAsync();
@@ -2085,7 +2195,7 @@ namespace Hospital_Management_System.Data
                 else
                 {
                     var prxList = new List<Prescription>();
-                    int limit = Math.Min(80 - existingPrescriptions, apptInfos.Count / 2);
+                    int limit = Math.Min(200 - existingPrescriptions, apptInfos.Count / 2);
                     for (int i = 0; i < limit; i++)
                     {
                         var ap = apptInfos[i * 2];
@@ -2122,17 +2232,17 @@ namespace Hospital_Management_System.Data
 
             // Bills bulk (for a subset of appointments)
             int existingBills = await context.Bills.CountAsync();
-            if (existingBills < 100)
+            if (existingBills < 250)
             {
                 var completedOrConfirmedAppts = await context.Appointments
                     .Where(a => a.Status == "Completed" || a.Status == "Confirmed")
                     .OrderByDescending(a => a.AppointmentDate)
                     .Select(a => new { a.Id, a.PatientId, a.ConsultationFee })
-                    .Take(120)
+                    .Take(400)
                     .ToListAsync();
 
                 var billList = new List<Bill>();
-                int toMake = Math.Min(100 - existingBills, completedOrConfirmedAppts.Count);
+                int toMake = Math.Min(250 - existingBills, completedOrConfirmedAppts.Count);
                 for (int i = 0; i < toMake; i++)
                 {
                     var ap = completedOrConfirmedAppts[i];
@@ -2168,35 +2278,95 @@ namespace Hospital_Management_System.Data
                 await context.SaveChangesAsync();
             }
 
-            // Schedules
-            if (!await context.Schedules.AnyAsync())
+            // Schedules - assign a weekly schedule for every doctor that doesn't have one yet
+            var docsWithoutSchedule = await context.Doctors
+                .Where(d => !context.Schedules.Any(s => s.DoctorId == d.Id))
+                .Select(d => d.Id)
+                .ToListAsync();
+            if (docsWithoutSchedule.Count > 0)
             {
-                var docIdsForSched = await context.Doctors.Select(d => d.Id).OrderBy(id => id).Take(2).ToListAsync();
-                if (docIdsForSched.Count >= 1)
+                var weeklyDays = new[] { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday };
+                var schedulesToAdd = new List<Schedule>();
+                foreach (var docId in docsWithoutSchedule)
                 {
-                    var schedules = new List<Schedule>
+                    // Each doctor gets 3 weekday shifts
+                    for (int s = 0; s < 3; s++)
                     {
-                        new Schedule
+                        var day = weeklyDays[(docId + s) % weeklyDays.Length];
+                        var startHour = 8 + ((docId + s) % 4); // 8..11 start
+                        schedulesToAdd.Add(new Schedule
                         {
-                            DayOfWeek = DayOfWeek.Sunday,
-                            StartTime = new TimeSpan(9,0,0),
-                            EndTime = new TimeSpan(13,0,0),
-                            DoctorId = docIdsForSched[0],
-                            CreatedAt = DateTime.UtcNow
-                        }
-                    };
-                    if (docIdsForSched.Count >= 2)
-                    {
-                        schedules.Add(new Schedule
-                        {
-                            DayOfWeek = DayOfWeek.Monday,
-                            StartTime = new TimeSpan(14,0,0),
-                            EndTime = new TimeSpan(18,0,0),
-                            DoctorId = docIdsForSched[1],
+                            DayOfWeek = day,
+                            StartTime = new TimeSpan(startHour, 0, 0),
+                            EndTime = new TimeSpan(startHour + 4, 0, 0),
+                            DoctorId = docId,
                             CreatedAt = DateTime.UtcNow
                         });
                     }
-                    context.Schedules.AddRange(schedules);
+                }
+                context.Schedules.AddRange(schedulesToAdd);
+                await context.SaveChangesAsync();
+            }
+
+            // Bulk Medical Records - seed up to 200 consultation records from past appointments
+            int existingMedicalRecords = await context.MedicalRecords.CountAsync();
+            if (existingMedicalRecords < 200)
+            {
+                var pastAppointments = await context.Appointments
+                    .Where(a => a.Status == "Completed")
+                    .OrderByDescending(a => a.AppointmentDate)
+                    .Select(a => new { a.PatientId, a.DoctorId, a.AppointmentDate })
+                    .Take(400)
+                    .ToListAsync();
+
+                if (pastAppointments.Count > 0)
+                {
+                    var symptomBank = new[]
+                    {
+                        "Headache", "Fever", "Chest pain", "Cough", "Shortness of breath",
+                        "Abdominal pain", "Joint pain", "Fatigue", "Dizziness", "Skin rash"
+                    };
+                    var diagnosisBank = new[]
+                    {
+                        "Migraine", "Viral infection", "Hypertension stage 1", "Bronchitis",
+                        "Asthma exacerbation", "Gastritis", "Osteoarthritis", "Vitamin D deficiency",
+                        "Vertigo", "Allergic dermatitis"
+                    };
+                    var treatmentBank = new[]
+                    {
+                        "Rest and analgesics", "Hydration and antipyretics", "Lifestyle changes and follow-up",
+                        "Bronchodilator therapy", "Inhaler regimen", "Diet adjustment and PPI",
+                        "Physical therapy", "Oral supplementation", "Vestibular rehabilitation", "Topical steroid"
+                    };
+                    var bpBank = new[] { "120/80", "118/76", "135/85", "128/82", "142/90", "110/70" };
+                    var tempBank = new[] { "36.6°C", "36.8°C", "37.1°C", "37.4°C", "38.0°C" };
+                    var hrBank = new[] { "68", "72", "76", "82", "88", "94" };
+
+                    var mrList = new List<MedicalRecord>();
+                    int toCreate = Math.Min(200 - existingMedicalRecords, pastAppointments.Count);
+                    for (int i = 0; i < toCreate; i++)
+                    {
+                        var ap = pastAppointments[i];
+                        mrList.Add(new MedicalRecord
+                        {
+                            RecordDate = ap.AppointmentDate,
+                            RecordType = "Consultation",
+                            Symptoms = symptomBank[i % symptomBank.Length],
+                            Diagnosis = diagnosisBank[i % diagnosisBank.Length],
+                            Treatment = treatmentBank[i % treatmentBank.Length],
+                            Notes = (i % 3 == 0) ? "Follow up in 2 weeks" : "Follow up in 1 month",
+                            VitalSigns = $"BP {bpBank[i % bpBank.Length]}, HR {hrBank[i % hrBank.Length]}",
+                            BloodPressure = bpBank[i % bpBank.Length],
+                            Temperature = tempBank[i % tempBank.Length],
+                            HeartRate = hrBank[i % hrBank.Length],
+                            Weight = $"{60 + (i % 40)}kg",
+                            Height = $"{155 + (i % 40)}cm",
+                            PatientId = ap.PatientId,
+                            DoctorId = ap.DoctorId,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                    context.MedicalRecords.AddRange(mrList);
                     await context.SaveChangesAsync();
                 }
             }
@@ -2248,5 +2418,83 @@ namespace Hospital_Management_System.Data
                 await context.SaveChangesAsync();
             }
         }
+
+        /// <summary>
+        /// Fixes doctor/patient emails that contain Arabic or invalid characters so login works with ASCII addresses.
+        /// Also updates linked AspNetUsers Email and UserName when present.
+        /// </summary>
+        public static async Task<FixLoginEmailsResult> FixLoginEmailsAsync(
+            HospitalDbContext context,
+            UserManager<User> userManager)
+        {
+            var result = new FixLoginEmailsResult();
+
+            var doctors = await context.Doctors.Where(d => !d.IsDeleted).ToListAsync();
+            foreach (var doctor in doctors)
+            {
+                if (SampleEmailHelper.IsValidLoginEmail(doctor.Email))
+                    continue;
+
+                var newEmail = SampleEmailHelper.DoctorEmail(doctor.Id);
+                if (await context.Doctors.AnyAsync(d => d.Id != doctor.Id && d.Email == newEmail && !d.IsDeleted))
+                    newEmail = $"dr.{doctor.Id}.{doctor.DepartmentId}@{SampleEmailHelper.Domain}";
+
+                result.DoctorsUpdated++;
+                await UpdateEntityAndUserEmailAsync(context, userManager, doctor.UserId, doctor.Email, newEmail,
+                    (e) => doctor.Email = e);
+            }
+
+            var patients = await context.Patients.Where(p => !p.IsDeleted).ToListAsync();
+            foreach (var patient in patients)
+            {
+                if (SampleEmailHelper.IsValidLoginEmail(patient.Email))
+                    continue;
+
+                var newEmail = SampleEmailHelper.PatientEmail(patient.Id);
+                if (await context.Patients.AnyAsync(p => p.Id != patient.Id && p.Email == newEmail && !p.IsDeleted))
+                    newEmail = $"patient.{patient.Id}.alt@{SampleEmailHelper.Domain}";
+
+                result.PatientsUpdated++;
+                await UpdateEntityAndUserEmailAsync(context, userManager, patient.UserId, patient.Email, newEmail,
+                    (e) => patient.Email = e);
+            }
+
+            await context.SaveChangesAsync();
+            return result;
+        }
+
+        private static async Task UpdateEntityAndUserEmailAsync(
+            HospitalDbContext context,
+            UserManager<User> userManager,
+            string? userId,
+            string oldEmail,
+            string newEmail,
+            Action<string> setEntityEmail)
+        {
+            setEntityEmail(newEmail);
+
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+                return;
+
+            if (string.Equals(user.Email, newEmail, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var existing = await userManager.FindByEmailAsync(newEmail);
+            if (existing != null && existing.Id != user.Id)
+                return;
+
+            await userManager.SetEmailAsync(user, newEmail);
+            await userManager.SetUserNameAsync(user, newEmail);
+        }
+    }
+
+    public class FixLoginEmailsResult
+    {
+        public int DoctorsUpdated { get; set; }
+        public int PatientsUpdated { get; set; }
     }
 }

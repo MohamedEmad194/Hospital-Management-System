@@ -1,8 +1,8 @@
 import apiClient from './client';
 
-export async function login(email, password, role) {
+export async function login(email, password) {
     try {
-        const { data } = await apiClient.post('/auth/login', { email, password, role });
+        const { data } = await apiClient.post('/auth/login', { email, password });
         return data; // { token, expiration, user }
     } catch (error) {
         // Error is already logged by client.js interceptor

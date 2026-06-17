@@ -22,7 +22,7 @@ namespace Hospital_Management_System.Controllers
         /// Get all rooms
         /// </summary>
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetRooms()
         {
             try
@@ -41,7 +41,7 @@ namespace Hospital_Management_System.Controllers
         /// Get room by ID
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<RoomDto>> GetRoom(int id)
         {
             try
@@ -63,7 +63,7 @@ namespace Hospital_Management_System.Controllers
         /// Get rooms by department
         /// </summary>
         [HttpGet("department/{departmentId}")]
-        [Authorize]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetRoomsByDepartment(int departmentId)
         {
             try
@@ -82,7 +82,7 @@ namespace Hospital_Management_System.Controllers
         /// Get available rooms
         /// </summary>
         [HttpGet("available")]
-        [Authorize]
+        [Authorize(Roles = "Admin,Doctor,Staff")]
         public async Task<ActionResult<IEnumerable<RoomDto>>> GetAvailableRooms()
         {
             try

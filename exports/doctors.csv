@@ -1,0 +1,4 @@
+FirstName,LastName,NationalId,Email,PhoneNumber,DateOfBirth,Gender,Address,LicenseNumber,Specialization,SubSpecialization,YearsOfExperience,Education,Certifications,Languages,ConsultationFee,WorkingHoursStart,WorkingHoursEnd,Department
+Ahmed,Hassan,2111111111,ahmed.hassan@hospital.com,01001234567,1980-03-20,Male,Second Floor - Main Building (A),LIC-CARD-001,Cardiology,Interventional Cardiac Catheterization,15,PhD,Board Certified by the Medical Council,"Arabic, English",250,09:00,17:00,Cardiology
+Sarah,Mohamed,2222222222,sarah.mohamed@hospital.com,01002345678,1982-06-12,Female,Third Floor - Main Building (A),LIC-NEURO-001,Neurology,Epileptology,13,PhD,Medical Fellowship,"Arabic, English",300,10:00,18:00,Neurology
+Omar,Ali,2333333333,omar.ali@hospital.com,01003456789,1985-11-05,Male,First Floor - Surgical Building (B),LIC-ORTHO-001,Orthopedics,Bone & Joint Surgery,10,Master's,Specialty Certification,"Arabic, English",220,08:30,16:30,Orthopedics

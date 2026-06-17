@@ -257,7 +257,7 @@ namespace Hospital_Management_System.Controllers
         /// Seed nursing units data (Allow anonymous for initial setup)
         /// </summary>
         [HttpPost("seed")]
-        [AllowAnonymous]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
         public async Task<ActionResult> SeedNursingUnits()
         {
             try

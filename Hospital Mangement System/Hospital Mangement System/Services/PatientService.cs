@@ -28,6 +28,39 @@ namespace Hospital_Management_System.Services
             return _mapper.Map<IEnumerable<PatientDto>>(patients);
         }
 
+        public async Task<PagedResultDto<PatientDto>> GetPagedPatientsAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Patients.Where(p => !p.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(p =>
+                    (p.FirstName != null && p.FirstName.ToLower().Contains(term)) ||
+                    (p.LastName != null && p.LastName.ToLower().Contains(term)) ||
+                    (p.Email != null && p.Email.ToLower().Contains(term)) ||
+                    (p.PhoneNumber != null && p.PhoneNumber.Contains(term)) ||
+                    (p.NationalId != null && p.NationalId.Contains(term)));
+            }
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(p => p.FirstName)
+                .ThenBy(p => p.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResultDto<PatientDto>
+            {
+                Items = _mapper.Map<IEnumerable<PatientDto>>(items),
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = total
+            };
+        }
+
         public async Task<PatientDto?> GetPatientByIdAsync(int id)
         {
             var patient = await _context.Patients

@@ -1,0 +1,30 @@
+RoomNumber,RoomType,Floor,Building,Description,Capacity,HourlyRate,IsAvailable,DepartmentName
+C101,Consultation,Floor 2,Building A,Cardiology consultation room,1,100,True,Cardiology
+N201,Consultation,Floor 3,Building A,Neurology consultation room,1,120,True,Neurology
+O101,Consultation,Floor 1,Building B,Orthopedics consultation room,1,110,True,Orthopedics
+P201,Consultation,Floor 2,Building B,Pediatrics consultation room,1,90,True,Pediatrics
+E001,Emergency,Ground Floor,Building A,Emergency room,4,200,True,Emergency
+C102,Consultation,Floor 2,Building A,Cardiology consultation room 2,1,100,True,Cardiology
+ICU-001,ICU,Floor 5,Building A,Intensive Care Unit room 1,1,500,False,Cardiology
+ICU-002,ICU,Floor 5,Building A,Intensive Care Unit room 2,1,500,True,Emergency
+SURG-001,Surgery,Floor 3,Building B,Surgery room 1,10,800,True,Orthopedics
+SURG-002,Surgery,Floor 3,Building B,Surgery room 2,10,800,True,Orthopedics
+WARD-101,Ward,Floor 4,Building A,General ward room 1,4,150,True,Cardiology
+WARD-102,Ward,Floor 4,Building A,General ward room 2,4,150,True,Neurology
+WARD-103,Ward,Floor 4,Building A,General ward room 3,4,150,False,Pediatrics
+G101,Consultation,Floor 2,Building B,Gastroenterology consultation room,1,130,True,Gastroenterology
+PUL-201,Consultation,Floor 3,Building B,Pulmonology consultation room,1,140,True,Pulmonology
+END-301,Consultation,Floor 4,Building B,Endocrinology consultation room,1,135,True,Endocrinology
+NEP-401,Consultation,Floor 5,Building A,Nephrology consultation room,1,145,True,Nephrology
+OPH-101,Consultation,Floor 1,Building C,Ophthalmology consultation room,1,160,True,Ophthalmology
+ENT-201,Consultation,Floor 2,Building C,ENT consultation room,1,125,True,ENT
+URO-301,Consultation,Floor 3,Building C,Urology consultation room,1,140,True,Urology
+GYN-401,Consultation,Floor 4,Building C,Gynecology consultation room,1,150,True,Gynecology
+PSY-501,Consultation,Floor 5,Building C,Psychiatry consultation room,1,180,True,Psychiatry
+E002,Emergency,Ground Floor,Building A,Emergency room 2,4,200,True,Emergency
+E003,Emergency,Ground Floor,Building A,Emergency room 3,4,200,False,Emergency
+RAD-001,Radiology,Basement,Building A,X-Ray room,1,300,True,Radiology
+RAD-002,Radiology,Basement,Building A,MRI room,1,500,True,Radiology
+RAD-003,Radiology,Basement,Building A,CT Scan room,1,450,True,Radiology
+ONC-401,Consultation,Floor 4,Building A,Oncology consultation room,1,250,True,Oncology
+DER-101,Consultation,Floor 1,Building A,Dermatology consultation room,1,115,True,Dermatology

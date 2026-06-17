@@ -5,6 +5,14 @@ export async function fetchBills() {
     return data;
 }
 
+export async function fetchBillsPaged({ page = 1, pageSize = 20, search = '', signal } = {}) {
+    const { data } = await apiClient.get('/Bills/paged', {
+        params: { page, pageSize, search: search || undefined },
+        signal,
+    });
+    return data;
+}
+
 export async function fetchBill(id) {
     const { data } = await apiClient.get(`/Bills/${id}`);
     return data;

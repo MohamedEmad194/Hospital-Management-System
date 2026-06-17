@@ -5,6 +5,7 @@ namespace Hospital_Management_System.Services
     public interface IPatientService
     {
         Task<IEnumerable<PatientDto>> GetAllPatientsAsync();
+        Task<PagedResultDto<PatientDto>> GetPagedPatientsAsync(int page, int pageSize, string? search);
         Task<PatientDto?> GetPatientByIdAsync(int id);
         Task<PatientDto?> GetPatientByNationalIdAsync(string nationalId);
         Task<PatientDto> CreatePatientAsync(CreatePatientDto createPatientDto);

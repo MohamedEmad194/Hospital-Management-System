@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchPatients } from '../api/patients';
 import { createBill } from '../api/bills';
 import { useTranslation } from 'react-i18next';
+import ErrorAlert from '../components/ErrorAlert';
 
 export default function AddBill() {
     const { t } = useTranslation();
@@ -52,7 +53,10 @@ export default function AddBill() {
         <div style={{ padding: 24 }}>
             <h2 style={{ marginTop: 0, marginBottom: 16 }}>{t('addBill.title')}</h2>
             <form onSubmit={handleSubmit} className="card" style={{ padding: 20, display: 'grid', gap: 12, maxWidth: 900 }}>
-                {error ? <div style={{ color: '#b00020' }}>{String(error)}</div> : null}
+                <ErrorAlert
+                    message={typeof error === 'string' ? error : (error?.message || (error ? String(error) : ''))}
+                    onDismiss={() => setError('')}
+                />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                     <div>
                         <label>{t('addBill.fields.patient')}</label>

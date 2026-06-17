@@ -1,8 +1,10 @@
 import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 
 export default function Register() {
+    const { t } = useTranslation();
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -64,29 +66,29 @@ export default function Register() {
             });
             navigate('/');
         } catch (err) {
-            let errorMessage = 'فشل التسجيل';
-            
+            let errorMessage = t('register.errors.failed');
+
             if (err?.response?.data) {
                 const responseData = err.response.data;
-                
+
                 // Check for email/username already taken
                 if (responseData.errors) {
                     const errors = responseData.errors;
                     const errorMessages = [];
-                    
+
                     Object.entries(errors).forEach(([field, messages]) => {
                         const msgArray = Array.isArray(messages) ? messages : [messages];
                         msgArray.forEach(msg => {
                             if (msg.includes('already taken') || msg.includes('موجود')) {
-                                errorMessages.push('البريد الإلكتروني مستخدم بالفعل');
+                                errorMessages.push(t('register.errors.emailTaken'));
                             } else {
                                 errorMessages.push(msg);
                             }
                         });
                     });
-                    
-                    errorMessage = errorMessages[0] || 'خطأ في البيانات المدخلة';
-                } 
+
+                    errorMessage = errorMessages[0] || t('register.errors.invalidData');
+                }
                 // Check for validation errors
                 else if (responseData.message) {
                     errorMessage = responseData.message;
@@ -96,7 +98,7 @@ export default function Register() {
                     errorMessage = responseData;
                 }
             } else if (err?.message) {
-                errorMessage = err.message.length > 50 ? 'حدث خطأ أثناء التسجيل' : err.message;
+                errorMessage = err.message.length > 50 ? t('register.errors.generic') : err.message;
             }
             
             setError(errorMessage);

@@ -31,6 +31,45 @@ namespace Hospital_Management_System.Services
             return _mapper.Map<IEnumerable<AppointmentDto>>(appointments);
         }
 
+        public async Task<PagedResultDto<AppointmentDto>> GetPagedAppointmentsAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Appointments
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.Room)
+                .Where(a => !a.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim().ToLower();
+                query = query.Where(a =>
+                    (a.Status != null && a.Status.ToLower().Contains(term)) ||
+                    (a.Reason != null && a.Reason.ToLower().Contains(term)) ||
+                    (a.Patient != null && (
+                        (a.Patient.FirstName != null && a.Patient.FirstName.ToLower().Contains(term)) ||
+                        (a.Patient.LastName != null && a.Patient.LastName.ToLower().Contains(term)))) ||
+                    (a.Doctor != null && (
+                        (a.Doctor.FirstName != null && a.Doctor.FirstName.ToLower().Contains(term)) ||
+                        (a.Doctor.LastName != null && a.Doctor.LastName.ToLower().Contains(term)))));
+            }
+
+            var total = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(a => a.AppointmentDate)
+                .ThenBy(a => a.AppointmentTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResultDto<AppointmentDto>
+            {
+                Items = _mapper.Map<IEnumerable<AppointmentDto>>(items),
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = total
+            };
+        }
+
         public async Task<AppointmentDto?> GetAppointmentByIdAsync(int id)
         {
             var appointment = await _context.Appointments

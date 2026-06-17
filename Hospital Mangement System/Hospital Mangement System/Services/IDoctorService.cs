@@ -5,6 +5,7 @@ namespace Hospital_Management_System.Services
     public interface IDoctorService
     {
         Task<IEnumerable<DoctorDto>> GetAllDoctorsAsync();
+        Task<PagedResultDto<DoctorDto>> GetPagedDoctorsAsync(int page, int pageSize, string? search);
         Task<DoctorDto?> GetDoctorByIdAsync(int id);
         Task<DoctorDto?> GetDoctorByNationalIdAsync(string nationalId);
         Task<DoctorDto?> GetDoctorByLicenseNumberAsync(string licenseNumber);

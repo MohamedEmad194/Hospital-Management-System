@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createDepartment } from '../api/departments';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ErrorAlert from '../components/ErrorAlert';
 
 export default function AddDepartment() {
     const { t } = useTranslation();
@@ -25,7 +26,10 @@ export default function AddDepartment() {
         <div style={{ padding: 24 }}>
             <h2 style={{ marginTop: 0, marginBottom: 16 }}>{t('addDepartment.title')}</h2>
             <form onSubmit={handleSubmit} className="card" style={{ padding: 20, display: 'grid', gap: 12, maxWidth: 680 }}>
-                {error ? <div style={{ color: '#b00020' }}>{String(error)}</div> : null}
+                <ErrorAlert
+                    message={typeof error === 'string' ? error : (error?.message || (error ? String(error) : ''))}
+                    onDismiss={() => setError('')}
+                />
                 <div>
                     <label>{t('addDepartment.fields.name')}</label>
                     <input value={form.name} onChange={(e) => update('name', e.target.value)} required />

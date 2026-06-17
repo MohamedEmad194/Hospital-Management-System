@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useContext, useCallback } from 'react';
 import { fetchMedicalRecordsByPatient } from '../api/medicalRecords';
-import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 
 export default function PatientReports() {
-    const { t } = useTranslation();
     const { user } = useContext(AuthContext);
     const isPatient = user?.roles?.includes('Patient');
     const [reports, setReports] = useState([]);
